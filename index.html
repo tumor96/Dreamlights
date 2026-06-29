@@ -28,7 +28,6 @@
   const { useState } = React;
   const h = React.createElement;
 
-  // Nuova lista colori con stati di magazzino aggiornati
   const LED_PRESETS = [
     { id: "warm3000", label: "Bianco Caldo", sub: "3000K", color: "#FFE090", glow: "#FFB020", tube: "#FFC840", preview: "#FFD870", note: "Caldo classico", stock: "disponibile" },
     { id: "orange",   label: "Arancione",    sub: "Neon",  color: "#FF9020", glow: "#FF4400", tube: "#FF6A00", preview: "#FF7010", note: "Neon classico", stock: "disponibile" },
@@ -135,8 +134,9 @@
     const prezzoTotale = Math.round(metri * PREZZO_PER_METRO);
     const tw = tubeWidth;
     
-    // Spessori aggiornati (13mm, 17mm, 24mm, 26mm)
-    const tubeLabel = tw <= 3 ? "13mm · Slim" : tw <= 5 ? "17mm · Standard" : tw <= 8 ? "24mm · Large" : "26mm · XL";
+    // Mappa millimetri reali basati sullo stato numerico
+    const mmReali = tw <= 3 ? 13 : tw <= 5 ? 17 : tw <= 8 ? 24 : 26;
+    const tubeLabel = `${mmReali}mm · ${tw <= 3 ? "Slim" : tw <= 5 ? "Standard" : tw <= 8 ? "Large" : "XL"}`;
 
     const sliderStyle = (col) => ({ width:'100%', accentColor: col });
     const card = { background:'#161616', borderRadius:14, padding:16, border:'1px solid #222', marginBottom:12, width:'100%' };
@@ -228,7 +228,7 @@
         }, isNight ? '🌙 Notte' : '☀️ Giorno')
       ),
 
-      // 1. COLORE (Griglia a 8 varianti con stati di magazzino)
+      // 1. COLORE
       h('div', { style:{...card} },
         h('span', { style:label }, 'Colore tubo LED'),
         h('div', { style:{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8 } },
@@ -246,7 +246,6 @@
                 h('div', { style:{ color: isSelected ? p.preview : '#666', fontSize:10, fontWeight:600 } }, p.sub),
                 p.note && h('div', { style:{ color:'#444', fontSize:9 } }, p.note)
               ),
-              // Badge Magazzino
               h('div', { style:{ position:'absolute', top:4, right:6, fontSize:8, fontWeight:800, textTransform:'uppercase', color: isAvailable ? '#25D366' : '#ffaa00', opacity:0.8 } }, 
                 isAvailable ? '● Pronto' : '○ Ordina'
               )
@@ -264,7 +263,7 @@
         h('input', { type:'range', min:10, max:100, step:5, value:brightness, onChange:e=>setBrightness(parseInt(e.target.value)), style:sliderStyle(preset.preview) })
       ),
 
-      // 3. SPESSORE TUBO CON ANTEPRIMA GRAFICA DINAMICA
+      // 3. SPESSORE TUBO CON ANTEPRIMA ORIZZONTALE PERPENDICOLARE AL MURO
       h('div', { style:{...card} },
         h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 } },
           h('span', { style:{ color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase' } }, 'Spessore tubo'),
@@ -281,18 +280,51 @@
             )
           )
         ),
-        // Sezione tecnica di dettaglio del tubo con rotazione fluida
-        h('div', { style:{ background:'#0d0d0d', borderRadius:10, padding:12, display:'flex', alignItems:'center', justifyContent:'center', border:'1px dashed #222', gap:15 } },
-          h('svg', { width:60, height:60, viewBox:'0 0 60 60', style:{ transform: `rotate(${tubeWidth * 8}deg)`, transition: 'all 0.3s ease' } },
-            h('circle', { cx:30, cy:30, r:12 + tubeWidth * 1.3, fill:'none', stroke:'#2a4a7a', strokeWidth:2, opacity:0.4 }),
-            h('circle', { cx:30, cy:30, r:8 + tubeWidth * 1.3, fill:'none', stroke:preset.preview, strokeWidth:tubeWidth * 0.5, style:{ filter: 'blur(1px)' } }),
-            h('line', { x1:30, y1:5, x2:30, y2:55, stroke:'rgba(80,140,255,0.15)', strokeWidth:0.5 }),
-            h('line', { x1:5, y1:30, x2:55, y2:30, stroke:'rgba(80,140,255,0.15)', strokeWidth:0.5 })
+        
+        // Nuova vista prospettica orizzontale (Muro verticale a sinistra, tubo sporgente a destra)
+        h('div', { style:{ background:'#0d0d0d', borderRadius:10, padding:'16px 12px', display:'flex', flexDirection:'column', border:'1px dashed #222', gap:12 } },
+          h('div', { style:{ position:'relative', height:50, width:'100%', background:'rgba(255,255,255,0.01)', borderRadius:6, overflow:'hidden', display:'flex', alignItems:'center' } },
+            
+            // Il Muro (Linea verticale di fondo a sinistra)
+            h('div', { style:{ position:'absolute', left:0, top:0, bottom:0, width:14, background:'repeating-linear-gradient(45deg, #222, #222 4px, #2da4a7a 4px, #2a4a7a 8px)', borderRight:'2px solid #555' } }),
+            h('div', { style:{ position:'absolute', left:16, top:6, color:'#444', fontSize:8, fontFamily:'monospace' } }, 'PARETE / SUPPORTO'),
+
+            // Il Tubo visto di profilo (Si allunga orizzontalmente verso destra in base ai mm)
+            h('div', { style:{ 
+              position:'absolute', 
+              left:14, 
+              height: 24, // Altezza fissa del profilo d'esempio
+              width: 40 + (mmReali * 4), // La larghezza orizzontale cresce visivamente con lo spessore reale
+              background: preset.tube, 
+              borderTopRightRadius: 6,
+              borderBottomRightRadius: 6,
+              border: '1px solid rgba(255,255,255,0.2)',
+              boxShadow: `0 0 ${10 + (brightness/5)}px ${preset.glow}`,
+              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              paddingRight: 6
+            } },
+              // Nucleo luminoso interno
+              h('div', { style:{ width:'80%', height:'50%', background:'#fff', borderRadius:3, opacity: (brightness/100) } })
+            ),
+
+            // Quota di misura orizzontale (Frecce di dimensione sotto)
+            h('div', { style:{ 
+              position:'absolute', 
+              left:14, 
+              bottom:2, 
+              width: 40 + (mmReali * 4), 
+              height:2, 
+              background:'#555',
+              transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            } })
           ),
-          h('div', { style:{ fontSize:11, color:'#666', fontFamily:'monospace', lineHeight:1.4 } },
-            h('div', { style:{ color:'#fff', fontWeight:700 } }, 'Sezione Tubo Reale:'),
-            h('div', null, `Diametro esterno: ~${tubeWidth <= 3 ? 13 : tubeWidth <= 5 ? 17 : tubeWidth <= 8 ? 24 : 26}mm`),
-            h('div', null, `Glow interno scalato`)
+          
+          h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:11, color:'#666', fontFamily:'monospace' } },
+            h('span', null, `Sporgenza / Larghezza reale del profilo:`),
+            h('span', { style:{ color:preset.preview, fontWeight:700 } }, `${mmReali} millimetri`)
           )
         )
       ),
