@@ -18,6 +18,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
   <script>
   const { useState, useRef } = React;
   const h = React.createElement;
@@ -139,6 +140,11 @@
     const spesaMensile = consumoKwhGiorno * 30 * costoKwhRoma;
     const spesaAnnuale = spesaMensile * 12;
 
+    const raddrizzatoriInclusi = Math.floor(metri / 30) >= 1 ? Math.floor(metri / 30) : 1;
+    const notaRaddrizzatore = metri <= 30 
+      ? `1 Raddrizzatore incluso nel prezzo` 
+      : `${raddrizzatoriInclusi} Raddrizzatori inclusi (Necessario valutare acquisto di un ulteriore raddrizzatore oltre i 30m)`;
+
     const handleFileChange = (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -162,7 +168,8 @@
         `• *Metratura totale:* ${metri} metri lineari\n` +
         `-----------------------------------------\n` +
         `• *Stima Costo Materiale:* €${prezzoTotale},00 + IVA\n` +
-        `• *Impatto Mensile Bolletta (8h/gg):* ~€${spesaMensile.toFixed(2)}\n\n` +
+        `• *Alimentazione:* Ogni 30 metri lineari 1 raddrizzatore incluso\n` +
+        `• *Nota Manodopera:* Costi di installazione e manodopera esclusi, da preventivare a parte.\n\n` +
         `Ciao Dreamlights, ho configurato l'impianto ideale per il mio locale tramite il sito. Vorrei maggiori informazioni e concordare un sopralluogo tecnico.`;
       
       return encodeURIComponent(testo);
@@ -178,7 +185,7 @@
         h('div', { style:{ fontSize:11, color:'#3a5a8a', letterSpacing:1 } }, 'Configura online · Visualizza sul tuo locale')
       ),
 
-      // ETICHETTE SPOSTATE SOPRA IL VISUALIZZATORE
+      // ETICHETTE SOPRA IL VISUALIZZATORE
       h('div', { style:{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0 4px 8px', fontSize:12 } },
         h('div', { style:{ display:'flex', alignItems:'center', gap:6 } },
           h('div', { style:{ width:8, height:8, borderRadius:'50%', background:preset.preview, boxShadow:"0 0 8px " + preset.preview } }),
@@ -270,18 +277,28 @@
         )
       ),
 
-      // 2. SPESSORE TUBO
+      // 2. SPESSORE TUBO + CERCHIO DI PREVIEW VISIVA (REINSERITO)
       h('div', { style:{...card} },
         h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 } },
           h('span', { style:label }, 'Spessore tubo'),
           h('span', { style:{ color:'#fff', fontSize:12, fontWeight:700 } }, tubeLabel)
         ),
-        h('div', { style:{ display:'flex', gap:6, marginBottom:12 } },
+        h('div', { style:{ display:'flex', gap:6, marginBottom:16 } },
           [{v:3,label:'13mm',sub:'Slim'},{v:5,label:'17mm',sub:'Standard'},{v:8,label:'24mm',sub:'Large'},{v:10,label:'26mm',sub:'XL'}].map(opt =>
             h('button', {
               key:opt.v, onClick:()=>setTubeWidth(opt.v),
               style:{ flex:1, padding:'8px 4px', borderRadius:10, fontSize:11, fontWeight:600, background: tubeWidth===opt.v ? '#222':'#111', color: tubeWidth===opt.v ? preset.preview:'#444', border:"2px solid " + (tubeWidth===opt.v ? preset.preview:'#222'), cursor:'pointer', textAlign:'center' }
             }, h('div', null, opt.label))
+          )
+        ),
+        // Sezione Visiva Dinamica (Sezione Cavo / Spessore)
+        h('div', { style:{ background:'#0f0f15', borderRadius:10, padding:12, display:'flex', alignItems:'center', gap:14, border:'1px solid #1a1a24' } },
+          h('div', { style:{ width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', background:'#050507', borderRadius:'50%' } },
+            h('div', { style:{ width: tubeWidth * 2.4, height: tubeWidth * 2.4, borderRadius:'50%', background: preset.preview, boxShadow: "0 0 10px " + preset.preview, transition:'all 0.2s ease' } })
+          ),
+          h('div', null,
+            h('div', { style:{ fontSize:11, fontWeight:'bold', color:'#aaa' } }, 'Sezione reale in scala'),
+            h('div', { style:{ fontSize:9, color:'#555', marginTop:2 } }, `Proiezione visiva del taglio da ${mmReali}mm`)
           )
         )
       ),
@@ -320,28 +337,35 @@
         )
       ),
 
-      // 5. RIEPILOGO GENERALE DELLE SELEZIONI (IN SOSTITUZIONE DEL PDF)
+      // 5. RIEPILOGO GENERALE DELLE SELEZIONI + PRECISI DETTAGLI NOTE TECNICHE E COSTI
       h('div', { style:{...card, background:'#0a0a10', border:'1px solid #2a2a3a'} },
         h('div', { style:{ display:'flex', alignItems:'center', gap:10, marginBottom:12 } },
           h('div', { style:{ background:'#f59e0b', width:8, height:8, borderRadius:'50%' } }),
           h('span', { style:{ color:'#f59e0b', fontSize:10, fontWeight:800, letterSpacing:2 } }, 'RIEPILOGO CONFIGURAZIONE ATTUALE')
         ),
-        h('div', { style:{ display:'flex', flexDirection:'column', gap:8 } },
+        h('div', { style:{ display:'flex', flexDirection:'column', gap:8, marginBottom:12 } },
           [
             ['🎨 Colore scaturito', `${preset.label} (${preset.sub})`],
             ['📏 Spessore tubo', tubeLabel],
             ['📐 Metratura totale', `${metri} m`],
             ['💶 Costo materiale', `€${prezzoTotale},00 + IVA`],
           ].map(([k, v], i) =>
-            h('div', { key:i, style:{ display:'flex', justifyContent:'space-between', fontSize:11, paddingBottom:8, borderBottom: i<3 ? '1px solid #222' : 'none' } },
+            h('div', { key:i, style:{ display:'flex', justifyContent:'space-between', fontSize:11, paddingBottom:8, borderBottom: '1px solid #1a1a24' } },
               h('span', { style:{ color:'#666' } }, k),
               h('span', { style:{ color:'#fff', fontWeight:700 } }, v)
             )
           )
+        ),
+        
+        // Sezione in piccolo con le note su raddrizzatori e manodopera esclusa
+        h('div', { style:{ background:'rgba(245,158,11,0.03)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:10, padding:10, fontSize:10, color:'#888', lineHeight:'1.4' } },
+          h('div', { style:{ color:'#aaa', fontWeight:'bold', marginBottom:4 } }, '⚠️ Informazioni Importanti per il Cliente:'),
+          h('div', { style:{ marginBottom:4 } }, `• 🔌 *Alimentazione:* ${notaRaddrizzatore}.`),
+          h('div', null, '• 🔨 *Installazione:* Il prezzo calcolato include esclusivamente la fornitura del materiale. I costi relativi alla manodopera, staffaggio e installazione in loco sono calcolati a parte in fase di sopralluogo.')
         )
       ),
 
-      // AZIONI E INVIO (PDF RIMOSSO)
+      // AZIONI E INVIO SU WHATSAPP
       h('a', { 
         href: "https://wa.me/393272617052?text=" + ottieniTestoWhatsApp(), 
         style:{ display:'block', width:'100%', padding:14, borderRadius:14, background:'#25D366', color:'#fff', fontSize:13, fontWeight:800, textAlign:'center', textDecoration:'none', boxShadow:'0 4px 15px rgba(37,211,102,0.3)' } 
