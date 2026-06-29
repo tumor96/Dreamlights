@@ -43,19 +43,15 @@
     const tw = tubeWidth * 1.8;
     const W = 560, H = 300;
 
-    // Coordinate dei percorsi LED dinamici basati sul selettore layout
     let paths = [];
     if (overlayLayout === "porte" || !bgImage) {
-      // Layout a due porte (default originale)
       paths = [
         "M 60 255 L 60 60 L 230 60 L 230 255",
         "M 330 255 L 330 60 L 500 60 L 500 255"
       ];
     } else if (overlayLayout === "vetrina") {
-      // Cornice perimetrale della vetrina/facciata
       paths = ["M 35 265 L 35 35 L 525 35 L 525 265"];
     } else if (overlayLayout === "insegna") {
-      // Linea orizzontale superiore dritta per insegna negozio
       paths = ["M 50 70 L 510 70"];
     }
 
@@ -69,7 +65,7 @@
     const d2 = { x: 330, y: 60, w: 170, h: 195 };
 
     function DoorBlueprint({ d }) {
-      if (bgImage) return null; // Nascondi linee finto CAD se c'è la foto reale
+      if (bgImage) return null;
       return h('g', null,
         h('rect', { x: d.x-14, y: d.y-14, width: d.w+28, height: d.h+14, fill:'none', stroke: bpLine, strokeWidth:1, strokeDasharray:'6 4' }),
         h('rect', { x: d.x, y: d.y, width: d.w, height: d.h, fill: 'rgba(80,140,255,0.03)', stroke: bpLine, strokeWidth:0.8 }),
@@ -88,12 +84,10 @@
           h('path', { d:'M 20 0 L 0 0 0 20', fill:'none', stroke:bpGrid, strokeWidth:0.5 })
         )
       ),
-      // Background (Colore o Foto dell'utente)
       h('rect', { width:W, height:H, fill:bpBg }),
       bgImage && h('image', { href: bgImage, width: W, height: H, preserveAspectRatio: 'xMidYMid slice', opacity: isNight ? 0.45 : 0.85 }),
       !bgImage && h('rect', { width:W, height:H, fill:'url(#grid)' }),
       
-      // Struttura tecnica (visibile solo senza foto)
       !bgImage && h('g', null,
         h('rect', { x:30, y:20, width:W-60, height:10, fill:'none', stroke:bpLine, strokeWidth:0.8, strokeDasharray:'8 4' }),
         h('line', { x1:30, y1:20, x2:W-30, y2:20, stroke:bpLine, strokeWidth:1 }),
@@ -102,7 +96,6 @@
         h(DoorBlueprint, { d:d2 })
       ),
 
-      // Rendering dei tubi LED su percorsi dinamici
       paths.map((p, index) => {
         const nightMultiplier = isNight ? 1.6 : 1;
         return h('g', { key: index },
@@ -127,7 +120,6 @@
     const [isNight, setIsNight] = useState(false);
     const [showRiepilogo, setShowRiepilogo] = useState(false);
     
-    // Nuovi stati per upload foto e gestione linea guida
     const [bgImage, setBgImage] = useState(null);
     const [overlayLayout, setOverlayLayout] = useState("porte");
     const fileInputRef = useRef(null);
@@ -138,16 +130,14 @@
     const mmReali = tw <= 3 ? 13 : tw <= 5 ? 17 : tw <= 8 ? 24 : 26;
     const tubeLabel = mmReali + "mm · " + (tw <= 3 ? "Slim" : tw <= 5 ? "Standard" : tw <= 8 ? "Large" : "XL");
 
-    // Calcolo ROI Energetico Dinamico (Confronto con Neon in Vetro Tradizionale)
-    const wattLedtot = metri * 11; // ~11W al metro
-    const wattNeonVecchio = metri * 45; // ~45W al metro per i vecchi tubi neon
-    const oreGiorni = 8;
-    const costoKwh = 0.28; // Tariffa media retail Roma 2026
-    const consumoAnnuoLed = (wattLedtot * oreGiorni * 365) / 1000;
-    const consumoAnnuoNeon = (wattNeonVecchio * oreGiorni * 365) / 1000;
-    const spesaLed = consumoAnnuoLed * costoKwh;
-    const spesaNeon = consumoAnnuoNeon * costoKwh;
-    const risparmioAnnuo = Math.round(spesaNeon - spesaLed);
+    // CALCOLO DATI REALI DA SCHEDA TECNICA
+    const wattAlMetro = 7.5; // Certificato da scheda tecnica
+    const oreGiornaliere = 8; // Standard commerciale ipotizzato
+    const costoKwhRoma = 0.28; // Costo medio commerciale reale a Roma finito
+    
+    const consumoKwhGiorno = (metri * wattAlMetro * oreGiornaliere) / 1000;
+    const spesaMensile = consumoKwhGiorno * 30 * costoKwhRoma;
+    const spesaAnnuale = spesaMensile * 12;
 
     const handleFileChange = (e) => {
       const file = e.target.files[0];
@@ -181,11 +171,11 @@
       doc.text("Riepilogo Configurazione:", 20, 60);
 
       const dettagli = [
-        ["Colore LED:", preset.label + " (" + preset.sub + ") - " + preset.stock.toUpperCase()],
-        ["Intensita Luminosa:", brightness + "%"],
+        ["Colore LED:", preset.label + " (" + preset.sub + ")"],
         ["Spessore Tubo:", tubeLabel],
-        ["Metratura Richiesta:", metri + " metri lineari"],
-        ["Risparmio Luce Stimato:", "Circa EUR " + risparmioAnnuo + " all'anno"],
+        ["Metratura:", metri + " metri lineari"],
+        ["Spesa Elettrica Mensile Stimata:", "EUR " + spesaMensile.toFixed(2)],
+        ["Spesa Elettrica Annuale Stimata:", "EUR " + spesaAnnuale.toFixed(2)],
         ["Prezzo Stimato Materiale:", "EUR " + prezzoTotale + ",00 + IVA"]
       ];
 
@@ -213,7 +203,7 @@
         h('div', { style:{ fontSize:11, color:'#3a5a8a', letterSpacing:1 } }, 'Configura online · Visualizza sul tuo locale')
       ),
 
-      // CONFIGURATORE VISIVO CON UPLOAD FOTO
+      // CONFIGURATORE VISIVO
       h('div', { style:{ width:'100%', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.8)', border:'1px solid rgba(80,140,255,0.15)', marginBottom:12, position:'relative', background: isNight ? '#030305' : '#0a0f1a' } },
         h(LedPreview, { ledColor:preset, brightness, tubeWidth:tw, isNight, bgImage, overlayLayout }),
         
@@ -235,7 +225,7 @@
         h('input', { type:'file', accept:'image/*', ref:fileInputRef, onChange:handleFileChange, style:{display:'none'} })
       ),
 
-      // SELETTORE LINEE GUIDA (Visibile solo se l'utente carica la sua foto)
+      // SELETTORE LINEE GUIDA FOTO
       bgImage && h('div', { style:{...card, background:'#1a1a26', border:'1px solid #3a4aff'} },
         h('span', { style:{ ...label, color:'#8a9aff' } }, 'Adatta il tubo LED alle linee della tua foto:'),
         h('div', { style:{ display:'flex', gap:6 } },
@@ -255,27 +245,32 @@
         )
       ),
 
-      // CALCOLATORE ROI ENERGETICO SMART
-      h('div', { style:{...card, background:'linear-gradient(135deg, #0d1b12 0%, #0d0d12 100%)', border:'1px solid #1e3a27'} },
-        h('div', { style:{ display:'flex', alignItems:'center', gap:10, marginBottom:8 } },
-          h('div', { style:{ background:'#25D366', width:8, height:8, borderRadius:'50%' } }),
-          h('span', { style:{ color:'#25D366', fontSize:10, fontWeight:800, letterSpacing:2 } }, 'IMPATTO IN BOLLETTA & RISPARMIO ENERGETICO')
+      // BOX IMPATTO IN BOLLETTA CERTIFICATO SUI DATI REALI
+      h('div', { style:{...card, background:'linear-gradient(135deg, #111827 0%, #0f111a 100%)', border:'1px solid #1f2937'} },
+        h('div', { style:{ display:'flex', alignItems:'center', gap:10, marginBottom:10 } },
+          h('div', { style:{ background:'#10b981', width:8, height:8, borderRadius:'50%', boxShadow:'0 0 8px #10b981' } }),
+          h('span', { style:{ color:'#34d399', fontSize:10, fontWeight:800, letterSpacing:2 } }, 'COSTO EFFETTIVO IN BOLLETTA (TECNOLOGIA 230V)')
         ),
-        h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center' } },
-          h('div', null,
-            h('div', { style:{ color:'#aaa', fontSize:12 } }, 'Risparmio stimato con Dreamlights LED:'),
-            h('div', { style:{ color:'#666', fontSize:10, marginTop:2 } }, `Rispetto ai vecchi sistemi neon calcolato su ${metri} metri lineari.`)
+        h('div', { style:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 } },
+          h('div', { style:{ background:'#0a0b10', padding:10, borderRadius:10, border:'1px solid #222' } },
+            h('div', { style:{ color:'#6b7280', fontSize:10, textTransform:'uppercase', letterSpacing:1 } }, 'Spesa Mensile'),
+            h('div', { style:{ color:'#fff', fontSize:20, fontWeight:900, marginTop:2 } }, `€ ${spesaMensile.toFixed(2)}`),
+            h('div', { style:{ color:'#4b5563', fontSize:9, marginTop:2 } }, 'Ipotizzando 8h/gg')
           ),
-          h('div', { style:{ textAlign:'right' } },
-            h('div', { style:{ color:'#25D366', fontSize:22, fontWeight:900 } }, `~ €${risparmioAnnuo} / anno`),
-            h('div', { style:{ color:'#444', fontSize:9, textTransform:'uppercase', fontWeight:700 } }, 'Meno emissioni Co2')
+          h('div', { style:{ background:'#0a0b10', padding:10, borderRadius:10, border:'1px solid #222' } },
+            h('div', { style:{ color:'#6b7280', fontSize:10, textTransform:'uppercase', letterSpacing:1 } }, 'Spesa Annuale'),
+            h('div', { style:{ color:'#34d399', fontSize:20, fontWeight:900, marginTop:2 } }, `€ ${spesaAnnuale.toFixed(2)}`),
+            h('div', { style:{ color:'#4b5563', fontSize:9, marginTop:2 } }, '365 giorni di attività')
           )
+        ),
+        h('div', { style:{ color:'#4b5563', fontSize:9, marginTop:8, textAlign:'center', fontFamily:'monospace' } }, 
+          `Dati calcolati su specifiche reali del tubo: 7.5 W/m (Assorbimento totale: ~${Math.round(metri * wattAlMetro)}W)`
         )
       ),
 
       // 1. COLORE
       h('div', { style:{...card} },
-        h('span', { style:label }, 'Colore tubo LED'),
+        h('span', { style:label }, 'Colore e Temperatura (Kelvin/Neon)'),
         h('div', { style:{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8 } },
           LED_PRESETS.map(p => {
             const isSelected = preset.id === p.id;
@@ -325,7 +320,7 @@
         )
       ),
 
-      // 4. METRAGGIO + PREZZO (€30 CORRETTO)
+      // 4. METRAGGIO + PREZZO
       h('div', { style:{...card} },
         h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 } },
           h('span', { style:label }, 'Metratura installazione'),
@@ -341,7 +336,7 @@
         )
       ),
 
-      // 5. GALLERIA PROGETTI ROMANI REALIZZATI (In attesa delle tue foto)
+      // 5. GALLERIA PROGETTI ROMANI
       h('div', { style:{...card} },
         h('span', { style:label }, 'Progetti Realizzati a Roma · Dreamlights'),
         h('div', { style:{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginTop:5 } },
@@ -361,7 +356,7 @@
       }, showRiepilogo ? '✓ Chiudi opzioni di invio' : '📋 Richiedi Sopralluogo / Salva Configurazione'),
 
       showRiepilogo && h('div', { style:{ width:'100%', background:'#111', borderRadius:14, padding:16, border:"1px solid " + preset.preview + "44", display:'flex', flexDirection:'column', gap:12 } },
-        h('button', { onClick: generaPDF, style: { width:'100%', padding:'12px', borderRadius:12, background:'#3b82f6', color:'#fff', fontWeight:800, border:'none', cursor:'pointer' } }, '📄 Scarica Preventivo con ROI in PDF'),
+        h('button', { onClick: generaPDF, style: { width:'100%', padding:'12px', borderRadius:12, background:'#3b82f6', color:'#fff', fontWeight:800, border:'none', cursor:'pointer' } }, '📄 Scarica Preventivo in PDF'),
         h('a', { href:"https://wa.me/393272617052?text=Ciao%20Dreamlights%2C%20ho%20configurato%20un%20impianto%20da%20" + metri + "m%20sul%20mio%20locale%20colore%20" + encodeURIComponent(preset.label) + ".%20Vorrei%20fissare%20un%20sopralluogo.", style:{ display:'block', padding:'12px', borderRadius:12, background:'#25D366', color:'#fff', fontWeight:800, textClassName:'none', textAlign:'center', textDecoration:'none' } }, '💬 Prenota Sopralluogo su WhatsApp')
       ),
 
