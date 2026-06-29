@@ -18,8 +18,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
   <script>
   const { useState, useRef } = React;
   const h = React.createElement;
@@ -122,7 +120,6 @@
     const [tubeWidth, setTubeWidth] = useState(5);
     const [metri, setMetri] = useState(9);
     const [isNight, setIsNight] = useState(false);
-    const [showRiepilogo, setShowRiepilogo] = useState(false);
     
     const [bgImage, setBgImage] = useState(null);
     const [overlayLayout, setOverlayLayout] = useState("porte");
@@ -155,48 +152,6 @@
     const card = { background:'#161616', borderRadius:14, padding:16, border:'1px solid #222', marginBottom:12, width:'100%' };
     const label = { color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase', marginBottom:10, display:'block' };
 
-    const generaPDF = () => {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.setFillColor(10, 10, 15);
-      doc.rect(0, 0, 210, 40, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(22);
-      doc.text("DREAMLIGHTS ROMA", 20, 20);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(150, 150, 150);
-      doc.text("Preventivo Indicativo Impianto LED Professionale", 20, 30);
-      doc.setTextColor(40, 40, 40);
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("Riepilogo Configurazione:", 20, 60);
-
-      const dettagli = [
-        ["Colore LED:", preset.label + " (" + preset.sub + ") - " + preset.note],
-        ["Spessore Tubo:", tubeLabel],
-        ["Metratura:", metri + " metri lineari"],
-        ["Spesa Elettrica Mensile Stimata:", "EUR " + spesaMensile.toFixed(2)],
-        ["Spesa Elettrica Annuale Stimata:", "EUR " + spesaAnnuale.toFixed(2)],
-        ["Prezzo Stimato Materiale:", "EUR " + prezzoTotale + ",00 + IVA"]
-      ];
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-      let yPos = 75;
-      dettagli.forEach(([label, value]) => {
-        doc.setFont("helvetica", "bold");
-        doc.text(label, 20, yPos);
-        doc.setFont("helvetica", "normal");
-        doc.text(value, 80, yPos);
-        yPos += 10;
-      });
-
-      doc.save("Preventivo_Dreamlights_" + metri + "m.pdf");
-    };
-
-    // 📋 GENERATORE DI MESSAGGIO AUTOMATICO PER WHATSAPP
     const ottieniTestoWhatsApp = () => {
       const testo = 
         `*DREAMLIGHTS ROMA — RIEPILOGO CONFIGURAZIONE*\n` +
@@ -365,19 +320,32 @@
         )
       ),
 
-      // AZIONI E INVIO
-      h('button', {
-        onClick: () => setShowRiepilogo(r => !r),
-        style:{ width:'100%', padding:14, borderRadius:14, border:"2px solid " + preset.preview, background: showRiepilogo ? preset.preview:'transparent', color: showRiepilogo ? '#000':preset.preview, fontSize:13, fontWeight:800, cursor:'pointer', marginBottom:12 }
-      }, showRiepilogo ? '✓ Chiudi opzioni di invio' : '📋 Richiedi Sopralluogo / Salva Configurazione'),
-
-      showRiepilogo && h('div', { style:{ width:'100%', background:'#111', borderRadius:14, padding:16, border:"1px solid " + preset.preview + "44", display:'flex', flexDirection:'column', gap:12 } },
-        h('button', { onClick: generaPDF, style: { width:'100%', padding:'12px', borderRadius:12, background:'#3b82f6', color:'#fff', fontWeight:800, border:'none', cursor:'pointer' } }, '📄 Scarica Preventivo in PDF'),
-        h('a', { 
-          href: "https://wa.me/393272617052?text=" + ottieniTestoWhatsApp(), 
-          style:{ display:'block', padding:'12px', borderRadius:12, background:'#25D366', color:'#fff', fontWeight:800, textAlign:'center', textDecoration:'none' } 
-        }, '💬 Invia Configurazione su WhatsApp')
+      // 5. RIEPILOGO GENERALE DELLE SELEZIONI (IN SOSTITUZIONE DEL PDF)
+      h('div', { style:{...card, background:'#0a0a10', border:'1px solid #2a2a3a'} },
+        h('div', { style:{ display:'flex', alignItems:'center', gap:10, marginBottom:12 } },
+          h('div', { style:{ background:'#f59e0b', width:8, height:8, borderRadius:'50%' } }),
+          h('span', { style:{ color:'#f59e0b', fontSize:10, fontWeight:800, letterSpacing:2 } }, 'RIEPILOGO CONFIGURAZIONE ATTUALE')
+        ),
+        h('div', { style:{ display:'flex', flexDirection:'column', gap:8 } },
+          [
+            ['🎨 Colore scaturito', `${preset.label} (${preset.sub})`],
+            ['📏 Spessore tubo', tubeLabel],
+            ['📐 Metratura totale', `${metri} m`],
+            ['💶 Costo materiale', `€${prezzoTotale},00 + IVA`],
+          ].map(([k, v], i) =>
+            h('div', { key:i, style:{ display:'flex', justifyContent:'space-between', fontSize:11, paddingBottom:8, borderBottom: i<3 ? '1px solid #222' : 'none' } },
+              h('span', { style:{ color:'#666' } }, k),
+              h('span', { style:{ color:'#fff', fontWeight:700 } }, v)
+            )
+          )
+        )
       ),
+
+      // AZIONI E INVIO (PDF RIMOSSO)
+      h('a', { 
+        href: "https://wa.me/393272617052?text=" + ottieniTestoWhatsApp(), 
+        style:{ display:'block', width:'100%', padding:14, borderRadius:14, background:'#25D366', color:'#fff', fontSize:13, fontWeight:800, textAlign:'center', textDecoration:'none', boxShadow:'0 4px 15px rgba(37,211,102,0.3)' } 
+      }, '💬 Invia Configurazione e Richiedi Sopralluogo su WhatsApp'),
 
       h('div', { style:{ marginTop:20, textAlign:'center', color:'#1a1a24', fontSize:9 } }, '© 2026 Dreamlights Roma — Soluzioni Luce Avanzate')
     );
