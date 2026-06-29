@@ -2,15 +2,16 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Dreamlights · Configuratore LED PRO · Roma</title>
   <meta name="description" content="Configura il tuo impianto LED professionale con Dreamlights Roma. Scegli colore, metratura e ottieni una stima immediata." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: #0a0a0f; min-height: 100vh; font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; color: #fff; }
+    html, body { background: #0a0a0f; min-height: 100vh; font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; color: #fff; overscroll-behavior: none; }
     button { font-family: inherit; }
     input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: #2a2a2a; outline: none; cursor: pointer; }
     input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid #0a0f1a; }
+    .handle { cursor: move; touch-action: none; }
   </style>
 </head>
 <body>
@@ -20,7 +21,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 
   <script>
-  const { useState, useRef } = React;
+  const { useState, useRef, useEffect } = React;
   const h = React.createElement;
 
   const LED_PRESETS = [
@@ -42,77 +43,98 @@
 
   const PREZZO_PER_METRO = 30;
 
-  function LedPreview({ ledColor, tubeWidth, isNight, bgImage, overlayLayout }) {
+  // COMPONENTE VISUALIZZATORE CON TRASCINAMENTO PUNTI (ADATTAMENTO REALE)
+  function LedPreview({ ledColor, tubeWidth, isNight, bgImage, points, setPoints }) {
     const { color, glow, tube } = ledColor;
     const tw = tubeWidth * 1.8;
-    const W = 560, H = 300;
+    const W = 560, H = 340;
+    const svgRef = useRef(null);
+    const [activePoint, setActivePoint] = useState(null);
 
-    let paths = [];
-    if (overlayLayout === "porte" || !bgImage) {
-      paths = [
-        "M 60 255 L 60 60 L 230 60 L 230 255",
-        "M 330 255 L 330 60 L 500 60 L 500 255"
-      ];
-    } else if (overlayLayout === "vetrina") {
-      paths = ["M 35 265 L 35 35 L 525 35 L 525 265"];
-    } else if (overlayLayout === "insegna") {
-      paths = ["M 50 70 L 510 70"];
+    // Genera la linea continua unendo i punti inseriti dall'utente
+    let pathData = "";
+    if (points.length > 0) {
+      pathData = `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ");
     }
+
+    const handlePointerDown = (index) => (e) => {
+      e.preventDefault();
+      setActivePoint(index);
+    };
+
+    useEffect(() => {
+      const handlePointerMove = (e) => {
+        if (activePoint === null || !svgRef.current) return;
+        const rect = svgRef.current.getBoundingClientRect();
+        
+        // Calcola la posizione proporzionale all'interno dell'SVG (0-560 e 0-340)
+        let x = ((e.clientX - rect.left) / rect.width) * W;
+        let y = ((e.clientY - rect.top) / rect.height) * H;
+        
+        // Limiti per non far uscire i punti dallo schermo
+        x = Math.max(10, Math.min(W - 10, x));
+        y = Math.max(10, Math.min(H - 10, y));
+
+        setPoints(prev => prev.map((p, i) => i === activePoint ? { x, y } : p));
+      };
+
+      const handlePointerUp = () => {
+        setActivePoint(null);
+      };
+
+      if (activePoint !== null) {
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+      }
+      return () => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+      };
+    }, [activePoint]);
 
     const bpBg = isNight ? "#030305" : "#0a0f1a";
     const bpGrid = isNight ? "rgba(255,255,255,0.02)" : "rgba(80,140,255,0.06)";
-    const bpLine = isNight ? "rgba(255,255,255,0.08)" : "rgba(100,160,255,0.18)";
-    const bpDash = isNight ? "rgba(255,255,255,0.04)" : "rgba(100,160,255,0.11)";
-    const bpText = isNight ? "rgba(255,255,255,0.2)" : "rgba(120,170,255,0.35)";
+    const nightMultiplier = isNight ? 1.6 : 1;
 
-    const d1 = { x: 60,  y: 60, w: 170, h: 195 };
-    const d2 = { x: 330, y: 60, w: 170, h: 195 };
-
-    function DoorBlueprint({ d }) {
-      if (bgImage) return null;
-      return h('g', null,
-        h('rect', { x: d.x-14, y: d.y-14, width: d.w+28, height: d.h+14, fill:'none', stroke: bpLine, strokeWidth:1, strokeDasharray:'6 4' }),
-        h('rect', { x: d.x, y: d.y, width: d.w, height: d.h, fill: 'rgba(80,140,255,0.03)', stroke: bpLine, strokeWidth:0.8 }),
-        h('text', { x: d.x+d.w/2, y: d.y+81, textAnchor:'middle', fontSize:7, fill: bpText, fontFamily:'monospace', letterSpacing:2 }, 'INGRESSO'),
-        h('text', { x: d.x+d.w/2, y: d.y+d.h+25, textAnchor:'middle', fontSize:6, fill: bpText, fontFamily:'monospace' }, (d.w*10)+' cm')
-      );
-    }
-
-    const gridLines = bgImage ? [] : Array.from({length:10}).map((_,i) =>
-      h('line', { key:i, x1:30, y1:30+i*22, x2:W-30, y2:30+i*22, stroke:bpDash, strokeWidth:0.3 })
-    );
-
-    return h('svg', { viewBox:`0 0 ${W} ${H}`, style:{width:'100%',borderRadius:12,display:'block', transition:'background 0.3s'} },
+    return h('svg', { 
+      ref: svgRef,
+      viewBox: `0 0 ${W} ${H}`, 
+      style: { width: '100%', borderRadius: 12, display: 'block', transition: 'background 0.3s', touchAction: 'none' } 
+    },
+      h('rect', { width: W, height: H, fill: bpBg }),
+      bgImage && h('image', { href: bgImage, width: W, height: H, preserveAspectRatio: 'xMidYMid slice', opacity: isNight ? 0.45 : 0.85 }),
+      !bgImage && h('rect', { width: W, height: H, fill: 'url(#grid2)' }),
+      
       h('defs', null,
-        h('pattern', { id:'grid', x:0, y:0, width:20, height:20, patternUnits:'userSpaceOnUse' },
-          h('path', { d:'M 20 0 L 0 0 0 20', fill:'none', stroke:bpGrid, strokeWidth:0.5 })
+        h('pattern', { id: 'grid2', x: 0, y: 0, width: 20, height: 20, patternUnits: 'userSpaceOnUse' },
+          h('path', { d: 'M 20 0 L 0 0 0 20', fill: 'none', stroke: bpGrid, strokeWidth: 0.5 })
         )
       ),
-      h('rect', { width:W, height:H, fill:bpBg }),
-      bgImage && h('image', { href: bgImage, width: W, height: H, preserveAspectRatio: 'xMidYMid slice', opacity: isNight ? 0.45 : 0.85 }),
-      !bgImage && h('rect', { width:W, height:H, fill:'url(#grid)' }),
-      
-      !bgImage && h('g', null,
-        h('rect', { x:30, y:20, width:W-60, height:10, fill:'none', stroke:bpLine, strokeWidth:0.8, strokeDasharray:'8 4' }),
-        h('line', { x1:30, y1:20, x2:W-30, y2:20, stroke:bpLine, strokeWidth:1 }),
-        ...gridLines,
-        h(DoorBlueprint, { d:d1 }),
-        h(DoorBlueprint, { d:d2 })
+
+      // Rendering del Tubo LED Neon con i suoi strati di sfumatura e bagliore
+      pathData && h('g', null,
+        h('path', { d: pathData, fill: 'none', stroke: glow, strokeWidth: tw * 16, strokeLinecap: 'round', strokeLinejoin: 'round', opacity: 0.06 * nightMultiplier, style: { filter: 'blur(22px)' } }),
+        h('path', { d: pathData, fill: 'none', stroke: glow, strokeWidth: tw * 7,  strokeLinecap: 'round', strokeLinejoin: 'round', opacity: 0.14 * nightMultiplier, style: { filter: 'blur(7px)' } }),
+        h('path', { d: pathData, fill: 'none', stroke: glow, strokeWidth: tw * 3,  strokeLinecap: 'round', strokeLinejoin: 'round', opacity: 0.42 * nightMultiplier, style: { filter: 'blur(2px)' } }),
+        h('path', { d: pathData, fill: 'none', stroke: tube, strokeWidth: tw,    strokeLinecap: 'round', strokeLinejoin: 'round', opacity: 0.97 }),
+        h('path', { d: pathData, fill: 'none', stroke: color, strokeWidth: tw * 0.42, strokeLinecap: 'round', strokeLinejoin: 'round', opacity: 1.0 }),
+        h('path', { d: pathData, fill: 'none', stroke: 'white', strokeWidth: tw * 0.16, strokeLinecap: 'round', strokeLinejoin: 'round', opacity: 0.45, strokeDasharray: '7 16' })
       ),
 
-      paths.map((p, index) => {
-        const nightMultiplier = isNight ? 1.6 : 1;
-        return h('g', { key: index },
-          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*16, strokeLinecap:'round', strokeLinejoin:'round', opacity:0.06*nightMultiplier, style:{filter:'blur(22px)'} }),
-          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*7,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.14*nightMultiplier, style:{filter:'blur(7px)'} }),
-          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*3,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.42*nightMultiplier, style:{filter:'blur(2px)'} }),
-          h('path', { d:p, fill:'none', stroke:tube, strokeWidth:tw,    strokeLinecap:'round', strokeLinejoin:'round', opacity:0.97 }),
-          h('path', { d:p, fill:'none', stroke:color,strokeWidth:tw*0.42,strokeLinecap:'round', strokeLinejoin:'round', opacity:1.0 }),
-          h('path', { d:p, fill:'none', stroke:'white',strokeWidth:tw*0.16,strokeLinecap:'round',strokeLinejoin:'round',opacity:0.45,strokeDasharray:'7 16' })
-        );
-      }),
+      // Pallini di controllo visibili sopra l'immagine per permettere l'adattamento manuale
+      points.map((p, i) => 
+        h('g', { key: i, className: 'handle', onPointerDown: handlePointerDown(i) },
+          // Area sensibile al tocco più grande del pallino visibile per facilitare il dito
+          h('circle', { cx: p.x, cy: p.y, r: 22, fill: 'transparent' }),
+          // Pallino visibile esterno sfumato
+          h('circle', { cx: p.x, cy: p.y, r: 9, fill: 'rgba(0,0,0,0.6)', stroke: ledColor.preview, strokeWidth: 2 }),
+          h('circle', { cx: p.x, cy: p.y, r: 4, fill: '#fff' }),
+          // Numero del punto per aiutare l'orientamento
+          h('text', { x: p.x, y: p.y - 14, textAnchor: 'middle', fontSize: 9, fill: '#fff', fontWeight: 'bold', backgroundColor: '#000' }, i + 1)
+        )
+      ),
 
-      h('text', { x:36, y:16, fontSize:6, fill: bgImage ? 'rgba(210,230,255,0.7)' : bpText, fontFamily:'monospace', letterSpacing:2 }, 'DREAMLIGHTS ROMA · CONFIGURATORE VIRTUALE IN TEMPO REALE')
+      h('text', { x: 20, y: 20, fontSize: 7, fill: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: 1 }, 'TRASCOLA I PUNTI GIALLI SULLA TUA PARETE PER ADATTARE IL LED')
     );
   }
 
@@ -121,10 +143,16 @@
     const [tubeWidth, setTubeWidth] = useState(5);
     const [metri, setMetri] = useState(9);
     const [isNight, setIsNight] = useState(false);
-    
     const [bgImage, setBgImage] = useState(null);
-    const [overlayLayout, setOverlayLayout] = useState("porte");
     const fileInputRef = useRef(null);
+
+    // Punti predefiniti che formano una sagoma standard modificabile (Porta/Vetrina generica)
+    const [points, setPoints] = useState([
+      { x: 120, y: 270 },
+      { x: 120, y: 80 },
+      { x: 440, y: 80 },
+      { x: 440, y: 270 }
+    ]);
 
     const prezzoTotale = metri * PREZZO_PER_METRO;
     const tw = tubeWidth;
@@ -144,6 +172,17 @@
     const notaRaddrizzatore = metri <= 30 
       ? `1 Raddrizzatore incluso nel prezzo` 
       : `${raddrizzatoriInclusi} Raddrizzatori inclusi (Necessario valutare acquisto di un ulteriore raddrizzatore oltre i 30m)`;
+
+    // Resetta i nodi alla forma di base se l'utente vuole ripulire il disegno
+    const resettaDisegno = (tipo) => {
+      if (tipo === "porta") {
+        setPoints([{ x: 140, y: 280 }, { x: 140, y: 70 }, { x: 420, y: 70 }, { x: 420, y: 280 }]);
+      } else if (tipo === "linea") {
+        setPoints([{ x: 60, y: 100 }, { x: 500, y: 100 }]);
+      } else {
+        setPoints([{ x: 80, y: 280 }, { x: 80, y: 60 }, { x: 480, y: 60 }, { x: 480, y: 280 }]);
+      }
+    };
 
     const handleFileChange = (e) => {
       const file = e.target.files[0];
@@ -170,7 +209,7 @@
         `• *Stima Costo Materiale:* €${prezzoTotale},00 + IVA\n` +
         `• *Alimentazione:* Ogni 30 metri lineari 1 raddrizzatore incluso\n` +
         `• *Nota Manodopera:* Costi di installazione e manodopera esclusi, da preventivare a parte.\n\n` +
-        `Ciao Dreamlights, ho configurato l'impianto ideale per il mio locale tramite il sito. Vorrei maggiori informazioni e concordare un sopralluogo tecnico.`;
+        `Ciao Dreamlights, ho configurato l'impianto ideale per il mio locale tramite il sito e adattato la linea sulla foto. Vorrei maggiori informazioni e concordare un sopralluogo tecnico.`;
       
       return encodeURIComponent(testo);
     };
@@ -182,7 +221,7 @@
         h('div', { style:{ fontSize:10, letterSpacing:5, color:'#2a4a7a', textTransform:'uppercase', marginBottom:8, fontFamily:'monospace' } }, 'Roma · Illuminazione Professionale'),
         h('div', { style:{ fontSize:30, fontWeight:900, color:'#fff', letterSpacing:4, textTransform:'uppercase' } }, 'Dreamlights'),
         h('div', { style:{ width:'40px', height:'2px', background:'linear-gradient(90deg,transparent,#4a8aff,transparent)', margin:'10px auto' } }),
-        h('div', { style:{ fontSize:11, color:'#3a5a8a', letterSpacing:1 } }, 'Configura online · Visualizza sul tuo locale')
+        h('div', { style:{ fontSize:11, color:'#3a5a8a', letterSpacing:1 } }, 'Configura online · Trascina il LED sui tuoi spazi')
       ),
 
       // ETICHETTE SOPRA IL VISUALIZZATORE
@@ -194,15 +233,15 @@
         h('span', { style:{ fontSize:10, fontWeight:'bold', textTransform:'uppercase', color: preset.stock === "disponibile" ? '#10b981' : '#f59e0b', background:'rgba(255,255,255,0.03)', padding:'3px 8px', borderRadius:6, border:'1px solid rgba(255,255,255,0.05)' } }, preset.note)
       ),
 
-      // CONFIGURATORE VISIVO
+      // CONFIGURATORE ADATTIVO INTERATTIVO A PUNTI
       h('div', { style:{ width:'100%', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.8)', border:'1px solid rgba(80,140,255,0.15)', marginBottom:12, position:'relative', background: isNight ? '#030305' : '#0a0f1a' } },
-        h(LedPreview, { ledColor:preset, tubeWidth:tw, isNight, bgImage, overlayLayout }),
+        h(LedPreview, { ledColor:preset, tubeWidth:tw, isNight, bgImage, points, setPoints }),
         
         h('div', { style:{ position:'absolute', bottom:10, right:10, display:'flex', gap:6, zIndex:10 } },
           h('button', {
             onClick: () => fileInputRef.current.click(),
             style: { background: 'rgba(0,0,0,0.85)', backdropFilter:'blur(6px)', borderRadius:20, padding:'5px 12px', border:'1px solid rgba(255,255,255,0.1)', color:'#fff', fontSize:10, fontWeight:600, cursor:'pointer' }
-          }, bgImage ? '📸 Cambia Foto' : '📸 Carica Foto'),
+          }, bgImage ? '📸 Cambia Foto' : '📸 Carica la tua Foto'),
           h('button', {
             onClick: () => setIsNight(!isNight),
             style: { background:'rgba(0,0,0,0.85)', backdropFilter:'blur(6px)', borderRadius:20, padding:'5px 12px', border:'1px solid rgba(255,255,255,0.1)', color:'#fff', fontSize:10, fontWeight:600, cursor:'pointer', minWidth:65 }
@@ -212,22 +251,20 @@
         h('input', { type:'file', accept:'image/*', ref:fileInputRef, onChange:handleFileChange, style:{display:'none'} })
       ),
 
-      // SELETTORE LINEE GUIDA FOTO
-      bgImage && h('div', { style:{...card, background:'#1a1a26', border:'1px solid #3a4aff'} },
-        h('span', { style:{ ...label, color:'#8a9aff' } }, 'Adatta il tubo LED alle linee della tua foto:'),
+      // CAMBIO FORMA VELOCE DI ORIENTAMENTO
+      h('div', { style:{...card, background:'#111118', border:'1px solid #222535', display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, padding:10} },
+        h('span', { style:{ fontSize:10, color:'#888', fontWeight:'bold', textTransform:'uppercase', paddingLeft:4 } }, 'Forma base:'),
         h('div', { style:{ display:'flex', gap:6 } },
           [
-            {id:"porte", title:"Cornice Porte", desc:"Profilo ingressi"},
-            {id:"vetrina", title:"Vetrina Intera", desc:"Profilo esterno"},
-            {id:"insegna", title:"Linea Insegna", desc:"Fascia alta"}
-          ].map(lay => 
+            { id: "porta", label: "🚪 Porta/Vetrina" },
+            { id: "rettangolo", label: "🔲 Intero" },
+            { id: "linea", label: "➖ Linea Alta" }
+          ].map(f => 
             h('button', {
-              key: lay.id, onClick: () => setOverlayLayout(lay.id),
-              style: { flex:1, padding:'8px', borderRadius:10, fontSize:11, background: overlayLayout===lay.id ? '#fff' : '#111', color: overlayLayout===lay.id ? '#000' : '#aaa', border:'none', cursor:'pointer', fontWeight:'bold' }
-            }, 
-              h('div', null, lay.title),
-              h('div', { style:{fontSize:8, opacity:0.6, fontWeight:'normal'} }, lay.desc)
-            )
+              key: f.id,
+              onClick: () => resettaDisegno(f.id),
+              style: { background:'#1c1c24', border:'1px solid #333', color:'#ccc', fontSize:10, padding:'5px 10px', borderRadius:8, cursor:'pointer', fontWeight:'600' }
+            }, f.label)
           )
         )
       ),
@@ -277,7 +314,7 @@
         )
       ),
 
-      // 2. SPESSORE TUBO + CERCHIO DI PREVIEW VISIVA (REINSERITO)
+      // 2. SPESSORE TUBO + ANTEPRIMA TONDA DINAMICA
       h('div', { style:{...card} },
         h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 } },
           h('span', { style:label }, 'Spessore tubo'),
@@ -291,7 +328,6 @@
             }, h('div', null, opt.label))
           )
         ),
-        // Sezione Visiva Dinamica (Sezione Cavo / Spessore)
         h('div', { style:{ background:'#0f0f15', borderRadius:10, padding:12, display:'flex', alignItems:'center', gap:14, border:'1px solid #1a1a24' } },
           h('div', { style:{ width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', background:'#050507', borderRadius:'50%' } },
             h('div', { style:{ width: tubeWidth * 2.4, height: tubeWidth * 2.4, borderRadius:'50%', background: preset.preview, boxShadow: "0 0 10px " + preset.preview, transition:'all 0.2s ease' } })
@@ -319,7 +355,7 @@
         )
       ),
 
-      // 4. GALLERIA CON IMMAGINI REALI CARICATE DA GITHUB
+      // 4. GALLERIA CON IMMAGINI REALI DA GITHUB
       h('div', { style:{...card} },
         h('span', { style:label }, 'Progetti Realizzati a Roma · Dreamlights'),
         h('div', { style:{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginTop:5 } },
@@ -337,7 +373,7 @@
         )
       ),
 
-      // 5. RIEPILOGO GENERALE DELLE SELEZIONI + PRECISI DETTAGLI NOTE TECNICHE E COSTI
+      // 5. RIEPILOGO GENERALE DELLE SELEZIONI E DETTAGLI NOTA TECNICA
       h('div', { style:{...card, background:'#0a0a10', border:'1px solid #2a2a3a'} },
         h('div', { style:{ display:'flex', alignItems:'center', gap:10, marginBottom:12 } },
           h('div', { style:{ background:'#f59e0b', width:8, height:8, borderRadius:'50%' } }),
@@ -357,7 +393,6 @@
           )
         ),
         
-        // Sezione in piccolo con le note su raddrizzatori e manodopera esclusa
         h('div', { style:{ background:'rgba(245,158,11,0.03)', border:'1px solid rgba(245,158,11,0.1)', borderRadius:10, padding:10, fontSize:10, color:'#888', lineHeight:'1.4' } },
           h('div', { style:{ color:'#aaa', fontWeight:'bold', marginBottom:4 } }, '⚠️ Informazioni Importanti per il Cliente:'),
           h('div', { style:{ marginBottom:4 } }, `• 🔌 *Alimentazione:* ${notaRaddrizzatore}.`),
@@ -365,7 +400,7 @@
         )
       ),
 
-      // AZIONI E INVIO SU WHATSAPP
+      // INVIO SU WHATSAPP
       h('a', { 
         href: "https://wa.me/393272617052?text=" + ottieniTestoWhatsApp(), 
         style:{ display:'block', width:'100%', padding:14, borderRadius:14, background:'#25D366', color:'#fff', fontSize:13, fontWeight:800, textAlign:'center', textDecoration:'none', boxShadow:'0 4px 15px rgba(37,211,102,0.3)' } 
