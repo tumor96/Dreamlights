@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Dreamlights · Configuratore LED · Roma</title>
+  <meta name="description" content="Configura il tuo impianto LED professionale con Dreamlights Roma. Scegli colore, intensità, metratura e ottieni una stima immediata." />
+  <meta property="og:title" content="Dreamlights · Configuratore LED" />
+  <meta property="og:description" content="Illuminazione professionale a Roma. Configura e ricevi il tuo preventivo." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #0a0a0f; min-height: 100vh; font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; color: #fff; }
+    button { font-family: inherit; }
+    input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: #2a2a2a; outline: none; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid #0a0a0f; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+  <script>
+  const { useState } = React;
+  const h = React.createElement;
+
+  const LED_PRESETS = [
+    { id: "warm2300", label: "Bianco Caldo", sub: "2300K", color: "#FFD080", glow: "#FF8800", tube: "#FFA020", preview: "#FFB030", note: "Ambrato · molto caldo" },
+    { id: "warm3000", label: "Bianco Caldo", sub: "3000K", color: "#FFE090", glow: "#FFB020", tube: "#FFC840", preview: "#FFD870", note: "Caldo classico" },
+    { id: "cold4000", label: "Bianco Neutro", sub: "4000K", color: "#E8F4FF", glow: "#70BAFF", tube: "#A8D8FF", preview: "#C0E4FF", note: "Brillante · pulito" },
+    { id: "orange",   label: "Arancione",    sub: "Neon",  color: "#FF9020", glow: "#FF4400", tube: "#FF6A00", preview: "#FF7010", note: "Ref. 88589" },
+  ];
+
+  const PREZZO_PER_METRO = 300 / 9;
+  const BP_BG   = "#0a0f1a";
+  const BP_GRID = "rgba(80,140,255,0.07)";
+  const BP_LINE = "rgba(100,160,255,0.22)";
+  const BP_DASH = "rgba(100,160,255,0.13)";
+  const BP_TEXT = "rgba(120,170,255,0.35)";
+
+  function LedPreview({ ledColor, brightness, tubeWidth }) {
+    const b = Math.max(0.1, brightness / 100);
+    const { color, glow, tube } = ledColor;
+    const tw = tubeWidth * 1.8;
+    const W = 560, H = 300;
+    const d1 = { x: 60,  y: 60, w: 170, h: 195 };
+    const d2 = { x: 330, y: 60, w: 170, h: 195 };
+
+    function ledPath(d) {
+      return `M ${d.x} ${d.y + d.h} L ${d.x} ${d.y} L ${d.x + d.w} ${d.y} L ${d.x + d.w} ${d.y + d.h}`;
+    }
+
+    function Door({ d }) {
+      return h('g', null,
+        h('rect', { x: d.x-14, y: d.y-14, width: d.w+28, height: d.h+14, fill:'none', stroke: BP_LINE, strokeWidth:1, strokeDasharray:'6 4' }),
+        h('rect', { x: d.x, y: d.y, width: d.w, height: d.h, fill:'rgba(80,140,255,0.04)', stroke: BP_LINE, strokeWidth:0.8 }),
+        h('rect', { x: d.x, y: d.y+68, width: d.w, height: 18, fill:'rgba(80,140,255,0.06)', stroke: BP_DASH, strokeWidth:0.6 }),
+        h('text', { x: d.x+d.w/2, y: d.y+81, textAnchor:'middle', fontSize:7, fill: BP_TEXT, fontFamily:'monospace', letterSpacing:2 }, 'NEGOZIO'),
+        h('line', { x1: d.x+12, y1: d.y+100, x2: d.x+12, y2: d.y+d.h-8, stroke: BP_DASH, strokeWidth:0.5 }),
+        h('line', { x1: d.x+d.w-12, y1: d.y+100, x2: d.x+d.w-12, y2: d.y+d.h-8, stroke: BP_DASH, strokeWidth:0.5 }),
+        h('line', { x1: d.x, y1: d.y+d.h+18, x2: d.x+d.w, y2: d.y+d.h+18, stroke: BP_DASH, strokeWidth:0.6 }),
+        h('line', { x1: d.x, y1: d.y+d.h+14, x2: d.x, y2: d.y+d.h+22, stroke: BP_DASH, strokeWidth:0.6 }),
+        h('line', { x1: d.x+d.w, y1: d.y+d.h+14, x2: d.x+d.w, y2: d.y+d.h+22, stroke: BP_DASH, strokeWidth:0.6 }),
+        h('text', { x: d.x+d.w/2, y: d.y+d.h+28, textAnchor:'middle', fontSize:6, fill: BP_TEXT, fontFamily:'monospace' }, (d.w*10)+' cm')
+      );
+    }
+
+    function Glow({ d }) {
+      const p = ledPath(d);
+      return h('g', null,
+        h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*16, strokeLinecap:'round', strokeLinejoin:'round', opacity:0.06*b, style:{filter:'blur(22px)'} }),
+        h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*7,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.14*b, style:{filter:'blur(7px)'} }),
+        h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*3,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.42*b, style:{filter:'blur(2px)'} }),
+        h('path', { d:p, fill:'none', stroke:tube, strokeWidth:tw,    strokeLinecap:'round', strokeLinejoin:'round', opacity:0.97 }),
+        h('path', { d:p, fill:'none', stroke:color,strokeWidth:tw*0.42,strokeLinecap:'round', strokeLinejoin:'round', opacity:b }),
+        h('path', { d:p, fill:'none', stroke:'white',strokeWidth:tw*0.16,strokeLinecap:'round',strokeLinejoin:'round',opacity:0.45*b,strokeDasharray:'7 16' })
+      );
+    }
+
+    const gridLines = Array.from({length:10}).map((_,i) =>
+      h('line', { key:i, x1:30, y1:30+i*22, x2:W-30, y2:30+i*22, stroke:BP_DASH, strokeWidth:0.3 })
+    );
+    const menuLines = Array.from({length:6}).map((_,i) =>
+      h('line', { key:i, x1:d1.x+d1.w+20, y1:100+i*9, x2:d1.x+d1.w+56, y2:100+i*9, stroke:BP_DASH, strokeWidth:0.4 })
+    );
+
+    return h('svg', { viewBox:`0 0 ${W} ${H}`, style:{width:'100%',borderRadius:12,display:'block'} },
+      h('defs', null,
+        h('pattern', { id:'grid', x:0, y:0, width:20, height:20, patternUnits:'userSpaceOnUse' },
+          h('path', { d:'M 20 0 L 0 0 0 20', fill:'none', stroke:BP_GRID, strokeWidth:0.5 })
+        )
+      ),
+      h('rect', { width:W, height:H, fill:BP_BG }),
+      h('rect', { width:W, height:H, fill:'url(#grid)' }),
+      h('rect', { x:30, y:20, width:W-60, height:10, fill:'none', stroke:BP_LINE, strokeWidth:0.8, strokeDasharray:'8 4' }),
+      h('line', { x1:30, y1:20, x2:W-30, y2:20, stroke:BP_LINE, strokeWidth:1 }),
+      h('rect', { x:30, y:30, width:W-60, height:H-60, fill:'rgba(80,140,255,0.02)', stroke:BP_LINE, strokeWidth:0.8, strokeDasharray:'10 5' }),
+      ...gridLines,
+      h('rect', { x:36, y:52, width:18, height:14, fill:'none', stroke:BP_DASH, strokeWidth:0.6 }),
+      h('text', { x:45, y:63, textAnchor:'middle', fontSize:6, fill:BP_TEXT, fontFamily:'monospace' }, '20'),
+      h('rect', { x:W-54, y:52, width:18, height:14, fill:'none', stroke:BP_DASH, strokeWidth:0.6 }),
+      h('text', { x:W-45, y:63, textAnchor:'middle', fontSize:6, fill:BP_TEXT, fontFamily:'monospace' }, '21'),
+      h('rect', { x:d1.x+d1.w+16, y:90, width:44, height:60, fill:'none', stroke:BP_DASH, strokeWidth:0.5, strokeDasharray:'3 3' }),
+      ...menuLines,
+      h(Door, { d:d1 }),
+      h(Door, { d:d2 }),
+      h(Glow, { d:d1 }),
+      h(Glow, { d:d2 }),
+      h('ellipse', { cx:d1.x+d1.w/2, cy:H-20, rx:70, ry:7, fill:glow, opacity:0.1*b, style:{filter:'blur(6px)'} }),
+      h('ellipse', { cx:d2.x+d2.w/2, cy:H-20, rx:70, ry:7, fill:glow, opacity:0.1*b, style:{filter:'blur(6px)'} }),
+      h('text', { x:36, y:16, fontSize:6, fill:BP_TEXT, fontFamily:'monospace', letterSpacing:2 }, 'DREAMLIGHTS · PROGETTO ILLUMINAZIONE · ROMA'),
+      h('line', { x1:30, y1:H-40, x2:W-30, y2:H-40, stroke:BP_DASH, strokeWidth:0.5, strokeDasharray:'4 6' })
+    );
+  }
+
+  function App() {
+    const [preset, setPreset] = useState(LED_PRESETS[0]);
+    const [brightness, setBrightness] = useState(85);
+    const [tubeWidth, setTubeWidth] = useState(5);
+    const [metri, setMetri] = useState(9);
+    const [showRiepilogo, setShowRiepilogo] = useState(false);
+
+    const prezzoTotale = Math.round(metri * PREZZO_PER_METRO);
+    const tw = tubeWidth;
+    const tubeLabel = tw <= 3 ? "13mm · Slim" : tw <= 5 ? "17mm · Standard" : tw <= 7 ? "22mm · Large" : "26mm · XL";
+
+    // Aggiorna colore thumb slider dinamicamente
+    const sliderStyle = (col) => ({ width:'100%', accentColor: col });
+
+    const card = { background:'#161616', borderRadius:14, padding:16, border:'1px solid #222', marginBottom:12 };
+    const label = { color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase', marginBottom:10, display:'block' };
+
+    return h('div', { style:{ minHeight:'100vh', background:'#0a0a0f', display:'flex', flexDirection:'column', alignItems:'center', padding:'24px 16px 60px', maxWidth:520, margin:'0 auto' } },
+
+      // HEADER
+      h('div', { style:{ width:'100%', textAlign:'center', marginBottom:24 } },
+        h('div', { style:{ fontSize:10, letterSpacing:5, color:'#2a4a7a', textTransform:'uppercase', marginBottom:8, fontFamily:'monospace' } }, 'Roma · Illuminazione Professionale'),
+        h('div', { style:{ fontSize:30, fontWeight:900, color:'#fff', letterSpacing:4, textTransform:'uppercase' } }, 'Dreamlights'),
+        h('div', { style:{ width:40, height:2, background:'linear-gradient(90deg,transparent,#4a8aff,transparent)', margin:'10px auto' } }),
+        h('div', { style:{ fontSize:11, color:'#2a4a6a', letterSpacing:1 } }, 'Configura il tuo impianto LED · Preventivo immediato')
+      ),
+
+      // PREVIEW BLUEPRINT
+      h('div', { style:{ width:'100%', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(80,140,255,0.15)', border:'1px solid rgba(80,140,255,0.2)', marginBottom:16, position:'relative', background:BP_BG } },
+        h(LedPreview, { ledColor:preset, brightness, tubeWidth:tw }),
+        h('div', { style:{ position:'absolute', top:10, right:10, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', borderRadius:20, padding:'4px 12px', border:`1px solid ${preset.preview}`, color:preset.preview, fontSize:11, fontWeight:700, boxShadow:`0 0 10px ${preset.preview}44` } },
+          preset.label + ' · ' + preset.sub
+        )
+      ),
+
+      // 1. COLORE
+      h('div', { style:{...card} },
+        h('span', { style:label }, 'Colore tubo LED'),
+        h('div', { style:{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 } },
+          LED_PRESETS.map(p =>
+            h('button', {
+              key: p.id,
+              onClick: () => setPreset(p),
+              style:{ background: preset.id===p.id ? '#222':'#111', border:`2px solid ${preset.id===p.id ? p.preview:'#2a2a2a'}`, borderRadius:12, padding:'12px 4px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:6, transition:'all 0.2s', boxShadow: preset.id===p.id ? `0 0 14px ${p.preview}40`:'none' }
+            },
+              h('div', { style:{ width:'80%', height:8, borderRadius:4, background:p.preview, boxShadow: preset.id===p.id ? `0 0 8px ${p.preview}`:'none' } }),
+              h('div', { style:{ color:'#ddd', fontSize:11, fontWeight:700, textAlign:'center', lineHeight:1.3 } }, p.label),
+              h('div', { style:{ color: preset.id===p.id ? p.preview:'#666', fontSize:11, fontWeight:800 } }, p.sub),
+              p.note && h('div', { style:{ color:'#444', fontSize:9, textAlign:'center', lineHeight:1.3 } }, p.note)
+            )
+          )
+        )
+      ),
+
+      // 2. LUMINOSITA
+      h('div', { style:{...card} },
+        h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 } },
+          h('span', { style:{ color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase' } }, 'Intensità luminosa'),
+          h('span', { style:{ color:'#fff', fontSize:16, fontWeight:800 } }, brightness + '%')
+        ),
+        h('div', { style:{ display:'flex', gap:6, marginBottom:12 } },
+          [25,50,75,100].map(v =>
+            h('button', {
+              key:v, onClick:()=>setBrightness(v),
+              style:{ flex:1, padding:'6px 0', borderRadius:8, fontSize:11, fontWeight:600, background: brightness===v ? preset.preview:'#1e1e1e', color: brightness===v ? '#000':'#555', border:`1px solid ${brightness===v ? preset.preview:'#2a2a2a'}`, cursor:'pointer', transition:'all 0.15s' }
+            }, v+'%')
+          )
+        ),
+        h('input', { type:'range', min:10, max:100, step:5, value:brightness, onChange:e=>setBrightness(parseInt(e.target.value)), style:sliderStyle(preset.preview) }),
+        h('div', { style:{ display:'flex', justifyContent:'space-between', marginTop:4 } },
+          h('span', { style:{ color:'#333', fontSize:10 } }, 'Soffuso'),
+          h('span', { style:{ color:'#333', fontSize:10 } }, 'Massima potenza')
+        )
+      ),
+
+      // 3. SPESSORE TUBO
+      h('div', { style:{...card} },
+        h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 } },
+          h('span', { style:{ color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase' } }, 'Spessore tubo'),
+          h('span', { style:{ color:'#fff', fontSize:13, fontWeight:700 } }, tubeLabel)
+        ),
+        h('div', { style:{ display:'flex', gap:6 } },
+          [{v:3,label:'13mm',sub:'Slim'},{v:5,label:'17mm',sub:'Standard'},{v:7,label:'22mm',sub:'Large'},{v:10,label:'26mm',sub:'XL'}].map(opt =>
+            h('button', {
+              key:opt.v, onClick:()=>setTubeWidth(opt.v),
+              style:{ flex:1, padding:'10px 4px', borderRadius:10, fontSize:11, fontWeight:600, background: tubeWidth===opt.v ? '#222':'#111', color: tubeWidth===opt.v ? preset.preview:'#444', border:`2px solid ${tubeWidth===opt.v ? preset.preview:'#222'}`, cursor:'pointer', transition:'all 0.15s', lineHeight:1.5, textAlign:'center' }
+            },
+              h('div', null, opt.label),
+              h('div', { style:{ fontSize:9, opacity:0.7 } }, opt.sub)
+            )
+          )
+        )
+      ),
+
+      // 4. METRAGGIO + PREZZO
+      h('div', { style:{...card} },
+        h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 } },
+          h('span', { style:{ color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase' } }, 'Metratura installazione'),
+          h('span', { style:{ color:'#fff', fontSize:20, fontWeight:900 } }, metri + ' m')
+        ),
+        h('input', { type:'range', min:1, max:100, step:1, value:metri, onChange:e=>setMetri(parseInt(e.target.value)), style:{ ...sliderStyle(preset.preview), marginBottom:8 } }),
+        h('div', { style:{ display:'flex', justifyContent:'space-between', marginBottom:16 } },
+          h('span', { style:{ color:'#333', fontSize:10 } }, '1 m'),
+          h('span', { style:{ color:'#333', fontSize:10 } }, '100 m')
+        ),
+        h('div', { style:{ background:'#0d0d0d', borderRadius:12, padding:'16px 18px', border:`1px solid ${preset.preview}33`, display:'flex', justifyContent:'space-between', alignItems:'center' } },
+          h('div', null,
+            h('div', { style:{ color:'#777', fontSize:11 } }, 'Stima costo materiale'),
+            h('div', { style:{ color:'#444', fontSize:10, marginTop:3 } }, metri + ' m × €' + PREZZO_PER_METRO.toFixed(2) + '/m')
+          ),
+          h('div', { style:{ color:preset.preview, fontSize:36, fontWeight:900, letterSpacing:-1, textShadow:`0 0 24px ${preset.preview}` } }, '€' + prezzoTotale)
+        ),
+        h('div', { style:{ marginTop:10, color:'#2a2a2a', fontSize:10, lineHeight:1.8 } },
+          '⚠️ Prezzo escluso IVA · Esclusa manodopera · Trasformatori aggiuntivi oltre 30 m · Preventivo definitivo dopo sopralluogo gratuito'
+        )
+      ),
+
+      // 5. RIEPILOGO
+      h('button', {
+        onClick: () => setShowRiepilogo(r => !r),
+        style:{ width:'100%', padding:14, borderRadius:14, border:`2px solid ${preset.preview}`, background: showRiepilogo ? preset.preview:'transparent', color: showRiepilogo ? '#000':preset.preview, fontSize:14, fontWeight:800, cursor:'pointer', transition:'all 0.2s', letterSpacing:0.5, marginBottom:12 }
+      }, showRiepilogo ? '✓ Riepilogo pronto — fai uno screenshot!' : '📋 Genera riepilogo da inviare'),
+
+      showRiepilogo && h('div', { style:{ width:'100%', background:'#111', borderRadius:14, padding:20, border:`1px solid ${preset.preview}44`, boxShadow:`0 0 30px ${preset.preview}18` } },
+        h('div', { style:{ color:'#444', fontSize:10, letterSpacing:3, textTransform:'uppercase', marginBottom:14 } }, '📸 Screenshot e invia su WhatsApp'),
+        h('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
+          [
+            ['🎨 Colore LED', preset.label + ' · ' + preset.sub],
+            ['💡 Intensità', brightness + '%'],
+            ['📏 Spessore tubo', tubeLabel],
+            ['📐 Metratura', metri + ' metri lineari'],
+            ['💶 Stima costo (mat.)', '€' + prezzoTotale + ' + IVA'],
+            ['📋 Note', 'Esclusa manodopera e trasformatori aggiuntivi'],
+          ].map(([k, v]) =>
+            h('div', { key:k, style:{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', borderBottom:'1px solid #1e1e1e', paddingBottom:8 } },
+              h('span', { style:{ color:'#555', fontSize:12 } }, k),
+              h('span', { style:{ color:'#fff', fontSize:12, fontWeight:700, textAlign:'right', maxWidth:'55%' } }, v)
+            )
+          )
+        ),
+        h('div', { style:{ marginTop:14, padding:'10px 14px', background:'#0d0d0d', borderRadius:8, color:'#3a3a3a', fontSize:10, lineHeight:1.7, textAlign:'center' } },
+          'Invia questo screenshot su WhatsApp per ricevere il preventivo definitivo e gratuito'
+        ),
+        h('div', { style:{ marginTop:12, textAlign:'center' } },
+          h('a', { href:'https://wa.me/393272617052', style:{ display:'inline-block', padding:'12px 24px', borderRadius:12, background:'#25D366', color:'#fff', fontWeight:800, fontSize:14, textDecoration:'none', letterSpacing:0.5 } },
+            '💬 Contattaci su WhatsApp'
+          )
+        )
+      ),
+
+      // FOOTER
+      h('div', { style:{ marginTop:24, textAlign:'center', color:'#1e1e1e', fontSize:10, lineHeight:2 } },
+        h('div', null, 'DREAMLIGHTS · Roma'),
+        h('div', null, 'Illuminazione LED professionale per negozi, ristoranti e locali commerciali'),
+        h('div', null, '© 2025 Dreamlights — Tutti i diritti riservati')
+      )
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(h(App, null));
+  </script>
+</body>
+</html>
