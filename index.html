@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Dreamlights · Configuratore LED PRO · Roma</title>
-  <meta name="description" content="Configura il tuo impianto LED professionale con Dreamlights Roma. Scegli colore, intensità, metratura e ottieni una stima immediata." />
+  <meta name="description" content="Configura il tuo impianto LED professionale con Dreamlights Roma. Scegli colore, metratura e ottieni una stima immediata." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { background: #0a0a0f; min-height: 100vh; font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; color: #fff; }
@@ -25,20 +25,19 @@
   const h = React.createElement;
 
   const LED_PRESETS = [
-    { id: "warm3000", label: "Bianco Caldo", sub: "3000K", color: "#FFE090", glow: "#FFB020", tube: "#FFC840", preview: "#FFD870", note: "Caldo classico", stock: "disponibile" },
-    { id: "orange",   label: "Arancione",    sub: "Neon",  color: "#FF9020", glow: "#FF4400", tube: "#FF6A00", preview: "#FF7010", note: "Neon classico", stock: "disponibile" },
-    { id: "warm2300", label: "Bianco Caldo", sub: "2300K", color: "#FFD080", glow: "#FF8800", tube: "#FFA020", preview: "#FFB030", note: "Ambrato", stock: "ordinabile" },
-    { id: "cold4000", label: "Bianco Neutro", sub: "4000K", color: "#E8F4FF", glow: "#70BAFF", tube: "#A8D8FF", preview: "#C0E4FF", note: "Brillante", stock: "ordinabile" },
-    { id: "purple",   label: "Viola",        sub: "Neon",  color: "#E080FF", glow: "#A000FF", tube: "#D040FF", preview: "#E070FF", note: "Intenso", stock: "ordinabile" },
-    { id: "green",    label: "Verde",        sub: "Neon",  color: "#80FF90", glow: "#00FF44", tube: "#40FF6A", preview: "#70FF85", note: "Fluo", stock: "ordinabile" },
-    { id: "red",      label: "Rosso",        sub: "Neon",  color: "#FF8080", glow: "#FF0000", tube: "#FF4040", preview: "#FF6060", note: "Deep Red", stock: "ordinabile" },
-    { id: "yellow",   label: "Giallo",       sub: "Neon",  color: "#FFFF80", glow: "#D4FF00", tube: "#EEEE40", preview: "#FFFF60", note: "Vivo", stock: "ordinabile" },
+    { id: "warm3000", label: "Bianco Caldo", sub: "3000K", color: "#FFE090", glow: "#FFB020", tube: "#FFC840", preview: "#FFD870", note: "Pronta Consegna", stock: "disponibile" },
+    { id: "orange",   label: "Arancione",    sub: "Neon",  color: "#FF9020", glow: "#FF4400", tube: "#FF6A00", preview: "#FF7010", note: "Pronta Consegna", stock: "disponibile" },
+    { id: "warm2300", label: "Bianco Caldo", sub: "2300K", color: "#FFD080", glow: "#FF8800", tube: "#FFA020", preview: "#FFB030", note: "Su Ordinazione", stock: "ordinabile" },
+    { id: "cold4000", label: "Bianco Neutro", sub: "4000K", color: "#E8F4FF", glow: "#70BAFF", tube: "#A8D8FF", preview: "#C0E4FF", note: "Su Ordinazione", stock: "ordinabile" },
+    { id: "purple",   label: "Viola",        sub: "Neon",  color: "#E080FF", glow: "#A000FF", tube: "#D040FF", preview: "#E070FF", note: "Su Ordinazione", stock: "ordinabile" },
+    { id: "green",    label: "Verde",        sub: "Neon",  color: "#80FF90", glow: "#00FF44", tube: "#40FF6A", preview: "#70FF85", note: "Su Ordinazione", stock: "ordinabile" },
+    { id: "red",      label: "Rosso",        sub: "Neon",  color: "#FF8080", glow: "#FF0000", tube: "#FF4040", preview: "#FF6060", note: "Su Ordinazione", stock: "ordinabile" },
+    { id: "yellow",   label: "Giallo",       sub: "Neon",  color: "#FFFF80", glow: "#D4FF00", tube: "#EEEE40", preview: "#FFFF60", note: "Su Ordinazione", stock: "ordinabile" },
   ];
 
   const PREZZO_PER_METRO = 30;
 
-  function LedPreview({ ledColor, brightness, tubeWidth, isNight, bgImage, overlayLayout }) {
-    const b = Math.max(0.1, brightness / 100);
+  function LedPreview({ ledColor, tubeWidth, isNight, bgImage, overlayLayout }) {
     const { color, glow, tube } = ledColor;
     const tw = tubeWidth * 1.8;
     const W = 560, H = 300;
@@ -99,12 +98,12 @@
       paths.map((p, index) => {
         const nightMultiplier = isNight ? 1.6 : 1;
         return h('g', { key: index },
-          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*16, strokeLinecap:'round', strokeLinejoin:'round', opacity:0.06*b*nightMultiplier, style:{filter:'blur(22px)'} }),
-          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*7,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.14*b*nightMultiplier, style:{filter:'blur(7px)'} }),
-          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*3,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.42*b*nightMultiplier, style:{filter:'blur(2px)'} }),
+          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*16, strokeLinecap:'round', strokeLinejoin:'round', opacity:0.06*nightMultiplier, style:{filter:'blur(22px)'} }),
+          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*7,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.14*nightMultiplier, style:{filter:'blur(7px)'} }),
+          h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*3,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.42*nightMultiplier, style:{filter:'blur(2px)'} }),
           h('path', { d:p, fill:'none', stroke:tube, strokeWidth:tw,    strokeLinecap:'round', strokeLinejoin:'round', opacity:0.97 }),
-          h('path', { d:p, fill:'none', stroke:color,strokeWidth:tw*0.42,strokeLinecap:'round', strokeLinejoin:'round', opacity:b }),
-          h('path', { d:p, fill:'none', stroke:'white',strokeWidth:tw*0.16,strokeLinecap:'round',strokeLinejoin:'round',opacity:0.45*b,strokeDasharray:'7 16' })
+          h('path', { d:p, fill:'none', stroke:color,strokeWidth:tw*0.42,strokeLinecap:'round', strokeLinejoin:'round', opacity:1.0 }),
+          h('path', { d:p, fill:'none', stroke:'white',strokeWidth:tw*0.16,strokeLinecap:'round',strokeLinejoin:'round',opacity:0.45,strokeDasharray:'7 16' })
         );
       }),
 
@@ -114,7 +113,6 @@
 
   function App() {
     const [preset, setPreset] = useState(LED_PRESETS[0]);
-    const [brightness, setBrightness] = useState(85);
     const [tubeWidth, setTubeWidth] = useState(5);
     const [metri, setMetri] = useState(9);
     const [isNight, setIsNight] = useState(false);
@@ -130,10 +128,10 @@
     const mmReali = tw <= 3 ? 13 : tw <= 5 ? 17 : tw <= 8 ? 24 : 26;
     const tubeLabel = mmReali + "mm · " + (tw <= 3 ? "Slim" : tw <= 5 ? "Standard" : tw <= 8 ? "Large" : "XL");
 
-    // CALCOLO DATI REALI DA SCHEDA TECNICA
-    const wattAlMetro = 7.5; // Certificato da scheda tecnica
-    const oreGiornaliere = 8; // Standard commerciale ipotizzato
-    const costoKwhRoma = 0.28; // Costo medio commerciale reale a Roma finito
+    // DATA SPECIFICS CALCULATION (7.5 W/m)
+    const wattAlMetro = 7.5;
+    const oreGiornaliere = 8;
+    const costoKwhRoma = 0.28;
     
     const consumoKwhGiorno = (metri * wattAlMetro * oreGiornaliere) / 1000;
     const spesaMensile = consumoKwhGiorno * 30 * costoKwhRoma;
@@ -171,7 +169,7 @@
       doc.text("Riepilogo Configurazione:", 20, 60);
 
       const dettagli = [
-        ["Colore LED:", preset.label + " (" + preset.sub + ")"],
+        ["Colore LED:", preset.label + " (" + preset.sub + ") - " + preset.note],
         ["Spessore Tubo:", tubeLabel],
         ["Metratura:", metri + " metri lineari"],
         ["Spesa Elettrica Mensile Stimata:", "EUR " + spesaMensile.toFixed(2)],
@@ -205,10 +203,10 @@
 
       // CONFIGURATORE VISIVO
       h('div', { style:{ width:'100%', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.8)', border:'1px solid rgba(80,140,255,0.15)', marginBottom:12, position:'relative', background: isNight ? '#030305' : '#0a0f1a' } },
-        h(LedPreview, { ledColor:preset, brightness, tubeWidth:tw, isNight, bgImage, overlayLayout }),
+        h(LedPreview, { ledColor:preset, tubeWidth:tw, isNight, bgImage, overlayLayout }),
         
         h('div', { style:{ position:'absolute', top:10, left:10, background:'rgba(0,0,0,0.8)', backdropFilter:'blur(4px)', borderRadius:20, padding:'4px 10px', border:"1px solid " + preset.preview, color:preset.preview, fontSize:10, fontWeight:700 } },
-          preset.label
+          preset.label + " (" + preset.note + ")"
         ),
 
         h('div', { style:{ position:'absolute', top:10, right:10, display:'flex', gap:6 } },
@@ -264,16 +262,17 @@
           )
         ),
         h('div', { style:{ color:'#4b5563', fontSize:9, marginTop:8, textAlign:'center', fontFamily:'monospace' } }, 
-          `Dati calcolati su specifiche reali del tubo: 7.5 W/m (Assorbimento totale: ~${Math.round(metri * wattAlMetro)}W)`
+          `Specifiche: 7.5 W/m · Assorbimento totale impianto: ~${Math.round(metri * wattAlMetro)}W`
         )
       ),
 
-      // 1. COLORE
+      // 1. COLORE E DISPONIBILITÀ (REINSERITO STOCK REALE)
       h('div', { style:{...card} },
-        h('span', { style:label }, 'Colore e Temperatura (Kelvin/Neon)'),
+        h('span', { style:label }, 'Colore, Temperatura e Stock Magazzino'),
         h('div', { style:{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:8 } },
           LED_PRESETS.map(p => {
             const isSelected = preset.id === p.id;
+            const isDispo = p.stock === "disponibile";
             return h('button', {
               key: p.id, onClick: () => setPreset(p),
               style:{ background: isSelected ? '#1f1f2e':'#111', border:"2px solid " + (isSelected ? p.preview : '#2a2a2a'), borderRadius:12, padding:'10px 8px', cursor:'pointer', display:'flex', alignItems:'center', gap:10, position:'relative', textAlign:'left' }
@@ -281,20 +280,12 @@
               h('div', { style:{ width:14, height:14, borderRadius:'50%', background:p.preview, boxShadow: isSelected ? "0 0 10px " + p.preview :'none', flexShrink:0 } }),
               h('div', null,
                 h('div', { style:{ color:'#fff', fontSize:11, fontWeight:700 } }, p.label),
-                h('div', { style:{ color: isSelected ? p.preview : '#666', fontSize:10 } }, p.sub)
+                h('div', { style:{ color: isSelected ? p.preview : '#666', fontSize:10 } }, p.sub),
+                h('div', { style:{ color: isDispo ? '#10b981' : '#f59e0b', fontSize:8, fontWeight:'bold', textTransform:'uppercase', marginTop:2 } }, p.note)
               )
             );
           })
         )
-      ),
-
-      // 2. LUMINOSITÀ
-      h('div', { style:{...card} },
-        h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 } },
-          h('span', { style:label }, 'Intensità luminosa'),
-          h('span', { style:{ color:'#fff', fontSize:15, fontWeight:800 } }, brightness + '%')
-        ),
-        h('input', { type:'range', min:10, max:100, step:5, value:brightness, onChange:e=>setBrightness(parseInt(e.target.value)), style:sliderStyle(preset.preview) })
       ),
 
       // 3. SPESSORE SEZIONE TONDA
