@@ -26,11 +26,16 @@
   const { useState } = React;
   const h = React.createElement;
 
+  // Nuova lista colori con stati di magazzino aggiornati
   const LED_PRESETS = [
-    { id: "warm2300", label: "Bianco Caldo", sub: "2300K", color: "#FFD080", glow: "#FF8800", tube: "#FFA020", preview: "#FFB030", note: "Ambrato · molto caldo" },
-    { id: "warm3000", label: "Bianco Caldo", sub: "3000K", color: "#FFE090", glow: "#FFB020", tube: "#FFC840", preview: "#FFD870", note: "Caldo classico" },
-    { id: "cold4000", label: "Bianco Neutro", sub: "4000K", color: "#E8F4FF", glow: "#70BAFF", tube: "#A8D8FF", preview: "#C0E4FF", note: "Brillante · pulito" },
-    { id: "orange",   label: "Arancione",    sub: "Neon",  color: "#FF9020", glow: "#FF4400", tube: "#FF6A00", preview: "#FF7010", note: "Ref. 88589" },
+    { id: "warm3000", label: "Bianco Caldo", sub: "3000K", color: "#FFE090", glow: "#FFB020", tube: "#FFC840", preview: "#FFD870", note: "Caldo classico", stock: "disponibile" },
+    { id: "orange",   label: "Arancione",    sub: "Neon",  color: "#FF9020", glow: "#FF4400", tube: "#FF6A00", preview: "#FF7010", note: "Neon classico", stock: "disponibile" },
+    { id: "warm2300", label: "Bianco Caldo", sub: "2300K", color: "#FFD080", glow: "#FF8800", tube: "#FFA020", preview: "#FFB030", note: "Ambrato", stock: "ordinabile" },
+    { id: "cold4000", label: "Bianco Neutro", sub: "4000K", color: "#E8F4FF", glow: "#70BAFF", tube: "#A8D8FF", preview: "#C0E4FF", note: "Brillante", stock: "ordinabile" },
+    { id: "purple",   label: "Viola",        sub: "Neon",  color: "#E080FF", glow: "#A000FF", tube: "#D040FF", preview: "#E070FF", note: "Intenso", stock: "ordinabile" },
+    { id: "green",    label: "Verde",        sub: "Neon",  color: "#80FF90", glow: "#00FF44", tube: "#40FF6A", preview: "#70FF85", note: "Fluo", stock: "ordinabile" },
+    { id: "red",      label: "Rosso",        sub: "Neon",  color: "#FF8080", glow: "#FF0000", tube: "#FF4040", preview: "#FF6060", note: "Deep Red", stock: "ordinabile" },
+    { id: "yellow",   label: "Giallo",       sub: "Neon",  color: "#FFFF80", glow: "#D4FF00", tube: "#EEEE40", preview: "#FFFF60", note: "Vivo", stock: "ordinabile" },
   ];
 
   const PREZZO_PER_METRO = 300 / 9;
@@ -43,7 +48,6 @@
     const d1 = { x: 60,  y: 60, w: 170, h: 195 };
     const d2 = { x: 330, y: 60, w: 170, h: 195 };
 
-    // Colori dinamici in base a Giorno/Notte
     const bpBg = isNight ? "#030305" : "#0a0f1a";
     const bpGrid = isNight ? "rgba(255,255,255,0.02)" : "rgba(80,140,255,0.07)";
     const bpLine = isNight ? "rgba(255,255,255,0.1)" : "rgba(100,160,255,0.22)";
@@ -71,7 +75,6 @@
 
     function Glow({ d }) {
       const p = ledPath(d);
-      // Il bagliore (glow) aumenta di intensità in modalità notte
       const nightMultiplier = isNight ? 1.5 : 1;
       return h('g', null,
         h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*16, strokeLinecap:'round', strokeLinejoin:'round', opacity:0.06*b*nightMultiplier, style:{filter:'blur(22px)'} }),
@@ -129,19 +132,19 @@
 
     const prezzoTotale = Math.round(metri * PREZZO_PER_METRO);
     const tw = tubeWidth;
-    const tubeLabel = tw <= 3 ? "13mm · Slim" : tw <= 5 ? "17mm · Standard" : tw <= 7 ? "22mm · Large" : "26mm · XL";
+    
+    // Configurazione spessori aggiornata (13, 17, 24, 26)
+    const tubeLabel = tw <= 3 ? "13mm · Slim" : tw <= 5 ? "17mm · Standard" : tw <= 8 ? "24mm · Large" : "26mm · XL";
 
     const sliderStyle = (col) => ({ width:'100%', accentColor: col });
     const card = { background:'#161616', borderRadius:14, padding:16, border:'1px solid #222', marginBottom:12, width:'100%' };
     const label = { color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase', marginBottom:10, display:'block' };
 
-    // Funzione per generare il PDF reale
     const generaPDF = () => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      // Stile ed estetica del PDF
-      doc.setFillColor(10, 10, 15); // Sfondo scuro per l'header
+      doc.setFillColor(10, 10, 15);
       doc.rect(0, 0, 210, 40, 'F');
       
       doc.setTextColor(255, 255, 255);
@@ -154,209 +157,9 @@
       doc.setTextColor(150, 150, 150);
       doc.text("Preventivo Indicativo Impianto LED Professionale", 20, 30);
 
-      // Corpo del testo
       doc.setTextColor(40, 40, 40);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text("Riepilogo Configurazione:", 20, 60);
 
-      const dettagli = [
-        ["Colore LED:", `${preset.label} (${preset.sub})`],
-        ["Intensita Luminosa:", `${brightness}%`],
-        ["Spessore Tubo:", tubeLabel],
-        ["Metratura Richiesta:", `${metri} metri lineari`],
-        ["Prezzo Stimato Materiale:", `EUR ${prezzoTotale},00 + IVA`]
-      ];
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-      let yPos = 75;
-      dettagli.forEach(([label, value]) => {
-        doc.setFont("helvetica", "bold");
-        doc.text(label, 20, yPos);
-        doc.setFont("helvetica", "normal");
-        doc.text(value, 80, yPos);
-        yPos += 10;
-      });
-
-      // Linea di divisione
-      doc.setDrawColor(200, 200, 200);
-      doc.line(20, yPos + 5, 190, yPos + 5);
-
-      // Note legali e pié di pagina
-      doc.setFontSize(9);
-      doc.setTextColor(120, 120, 120);
-      const note = [
-        "* Il presente documento costituisce una stima puramente indicativa del costo dei materiali.",
-        "* Prezzo escluso IVA e manodopera per l'installazione.",
-        "* Oltre i 30 metri di impianto potrebbero essere necessari trasformatori e alimentatori aggiuntivi.",
-        "* Il preventivo definitivo verra rilasciato solo a seguito di un sopralluogo tecnico gratuito."
-      ];
-      
-      yPos += 15;
-      note.forEach(line => {
-        doc.text(line, 20, yPos);
-        yPos += 6;
-      });
-
-      // Salvataggio file
-      doc.save(`Preventivo_Dreamlights_${metri}m.pdf`);
-    };
-
-    return h('div', { style:{ minHeight:'100vh', background:'#0a0a0f', display:'flex', flexDirection:'column', alignItems:'center', padding:'24px 16px 60px', maxWidth:520, margin:'0 auto' } },
-
-      // HEADER
-      h('div', { style:{ width:'100%', textAlign:'center', marginBottom:24 } },
-        h('div', { style:{ fontSize:10, letterSpacing:5, color:'#2a4a7a', textTransform:'uppercase', marginBottom:8, fontFamily:'monospace' } }, 'Roma · Illuminazione Professionale'),
-        h('div', { style:{ fontSize:30, fontWeight:900, color:'#fff', letterSpacing:4, textTransform:'uppercase' } }, 'Dreamlights'),
-        h('div', { style:{ width:40, height:2, background:'linear-gradient(90deg,transparent,#4a8aff,transparent)', margin:'10px auto' } }),
-        h('div', { style:{ fontSize:11, color:'#2a4a6a', letterSpacing:1 } }, 'Configura il tuo impianto LED · Preventivo immediato')
-      ),
-
-      // PREVIEW BLUEPRINT + CONTROLLO GIORNO/NOTTE
-      h('div', { style:{ width:'100%', borderRadius:14, overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(80,140,255,0.15)', border:'1px solid rgba(80,140,255,0.2)', marginBottom:16, position:'relative', background: isNight ? '#030305' : '#0a0f1a' } },
-        h(LedPreview, { ledColor:preset, brightness, tubeWidth:tw, isNight }),
-        
-        // Badge Colore
-        h('div', { style:{ position:'absolute', top:10, left:10, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', borderRadius:20, padding:'4px 12px', border:`1px solid ${preset.preview}`, color:preset.preview, fontSize:11, fontWeight:700, boxShadow:`0 0 10px ${preset.preview}44` } },
-          preset.label + ' · ' + preset.sub
-        ),
-
-        // Toggle Giorno / Notte
-        h('button', {
-          onClick: () => setIsNight(!isNight),
-          style: { position:'absolute', top:10, right:10, background:'rgba(0,0,0,0.75)', backdropFilter:'blur(6px)', borderRadius:20, padding:'4px 12px', border:'1px solid #444', color:'#fff', fontSize:11, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:4 }
-        }, isNight ? '🌙 Notte' : '☀️ Giorno')
-      ),
-
-      // 1. COLORE
-      h('div', { style:{...card} },
-        h('span', { style:label }, 'Colore tubo LED'),
-        h('div', { style:{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 } },
-          LED_PRESETS.map(p =>
-            h('button', {
-              key: p.id,
-              onClick: () => setPreset(p),
-              style:{ background: preset.id===p.id ? '#222':'#111', border:`2px solid ${preset.id===p.id ? p.preview:'#2a2a2a'}`, borderRadius:12, padding:'12px 4px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:6, transition:'all 0.2s', boxShadow: preset.id===p.id ? `0 0 14px ${p.preview}40`:'none' }
-            },
-              h('div', { style:{ width:'80%', height:8, borderRadius:4, background:p.preview, boxShadow: preset.id===p.id ? `0 0 8px ${p.preview}`:'none' } }),
-              h('div', { style:{ color:'#ddd', fontSize:11, fontWeight:700, textAlign:'center', lineHeight:1.3 } }, p.label),
-              h('div', { style:{ color: preset.id===p.id ? p.preview:'#666', fontSize:11, fontWeight:800 } }, p.sub),
-              p.note && h('div', { style:{ color:'#444', fontSize:9, textAlign:'center', lineHeight:1.3 } }, p.note)
-            )
-          )
-        )
-      ),
-
-      // 2. LUMINOSITA
-      h('div', { style:{...card} },
-        h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 } },
-          h('span', { style:{ color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase' } }, 'Intensità luminosa'),
-          h('span', { style:{ color:'#fff', fontSize:16, fontWeight:800 } }, brightness + '%')
-        ),
-        h('div', { style:{ display:'flex', gap:6, marginBottom:12 } },
-          [25,50,75,100].map(v =>
-            h('button', {
-              key:v, onClick:()=>setBrightness(v),
-              style:{ flex:1, padding:'6px 0', borderRadius:8, fontSize:11, fontWeight:600, background: brightness===v ? preset.preview:'#1e1e1e', color: brightness===v ? '#000':'#555', border:`1px solid ${brightness===v ? preset.preview:'#2a2a2a'}`, cursor:'pointer', transition:'all 0.15s' }
-            }, v+'%')
-          )
-        ),
-        h('input', { type:'range', min:10, max:100, step:5, value:brightness, onChange:e=>setBrightness(parseInt(e.target.value)), style:sliderStyle(preset.preview) }),
-        h('div', { style:{ display:'flex', justifyContent:'space-between', marginTop:4 } },
-          h('span', { style:{ color:'#333', fontSize:10 } }, 'Soffuso'),
-          h('span', { style:{ color:'#333', fontSize:10 } }, 'Massima potenza')
-        )
-      ),
-
-      // 3. SPESSORE TUBO
-      h('div', { style:{...card} },
-        h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 } },
-          h('span', { style:{ color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase' } }, 'Spessore tubo'),
-          h('span', { style:{ color:'#fff', fontSize:13, fontWeight:700 } }, tubeLabel)
-        ),
-        h('div', { style:{ display:'flex', gap:6 } },
-          [{v:3,label:'13mm',sub:'Slim'},{v:5,label:'17mm',sub:'Standard'},{v:7,label:'22mm',sub:'Large'},{v:10,label:'26mm',sub:'XL'}].map(opt =>
-            h('button', {
-              key:opt.v, onClick:()=>setTubeWidth(opt.v),
-              style:{ flex:1, padding:'10px 4px', borderRadius:10, fontSize:11, fontWeight:600, background: tubeWidth===opt.v ? '#222':'#111', color: tubeWidth===opt.v ? preset.preview:'#444', border:`2px solid ${tubeWidth===opt.v ? preset.preview:'#222'}`, cursor:'pointer', transition:'all 0.15s', lineHeight:1.5, textAlign:'center' }
-            },
-              h('div', null, opt.label),
-              h('div', { style:{ fontSize:9, opacity:0.7 } }, opt.sub)
-            )
-          )
-        )
-      ),
-
-      // 4. METRAGGIO + PREZZO
-      h('div', { style:{...card} },
-        h('div', { style:{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 } },
-          h('span', { style:{ color:'#555', fontSize:10, letterSpacing:3, textTransform:'uppercase' } }, 'Metratura installazione'),
-          h('span', { style:{ color:'#fff', fontSize:20, fontWeight:900 } }, metri + ' m')
-        ),
-        h('input', { type:'range', min:1, max:100, step:1, value:metri, onChange:e=>setMetri(parseInt(e.target.value)), style:{ ...sliderStyle(preset.preview), marginBottom:8 } }),
-        h('div', { style:{ display:'flex', justifyContent:'space-between', marginBottom:16 } },
-          h('span', { style:{ color:'#333', fontSize:10 } }, '1 m'),
-          h('span', { style:{ color:'#333', fontSize:10 } }, '100 m')
-        ),
-        h('div', { style:{ background:'#0d0d0d', borderRadius:12, padding:'16px 18px', border:`1px solid ${preset.preview}33`, display:'flex', justifyContent:'space-between', alignItems:'center' } },
-          h('div', null,
-            h('div', { style:{ color:'#777', fontSize:11 } }, 'Stima costo materiale'),
-            h('div', { style:{ color:'#444', fontSize:10, marginTop:3 } }, metri + ' m × €' + PREZZO_PER_METRO.toFixed(2) + '/m')
-          ),
-          h('div', { style:{ color:preset.preview, fontSize:36, fontWeight:900, letterSpacing:-1, textShadow:`0 0 24px ${preset.preview}` } }, '€' + prezzoTotale)
-        ),
-        h('div', { style:{ marginTop:10, color:'#2a2a2a', fontSize:10, lineHeight:1.8 } },
-          '⚠️ Prezzo escluso IVA · Esclusa manodopera · Trasformatori aggiuntivi oltre 30 m · Preventivo definitivo dopo sopralluogo gratuito'
-        )
-      ),
-
-      // 5. AZIONI / GENERAZIONE PDF
-      h('button', {
-        onClick: () => setShowRiepilogo(r => !r),
-        style:{ width:'100%', padding:14, borderRadius:14, border:`2px solid ${preset.preview}`, background: showRiepilogo ? preset.preview:'transparent', color: showRiepilogo ? '#000':preset.preview, fontSize:14, fontWeight:800, cursor:'pointer', transition:'all 0.2s', letterSpacing:0.5, marginBottom:12 }
-      }, showRiepilogo ? '✓ Chiudi riepilogo' : '📋 Mostra opzioni di invio'),
-
-      showRiepilogo && h('div', { style:{ width:'100%', background:'#111', borderRadius:14, padding:20, border:`1px solid ${preset.preview}44`, boxShadow:`0 0 30px ${preset.preview}18`, display:'flex', flexDirection:'column', gap:14 } },
-        h('div', { style:{ display:'flex', flexDirection:'column', gap:10 } },
-          [
-            ['🎨 Colore LED', preset.label + ' · ' + preset.sub],
-            ['💡 Intensità', brightness + '%'],
-            ['📏 Spessore tubo', tubeLabel],
-            ['📐 Metratura', metri + ' metri lineari'],
-            ['💶 Stima costo (mat.)', '€' + prezzoTotale + ' + IVA'],
-          ].map(([k, v]) =>
-            h('div', { key:k, style:{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', borderBottom:'1px solid #1e1e1e', paddingBottom:8 } },
-              h('span', { style:{ color:'#555', fontSize:12 } }, k),
-              h('span', { style:{ color:'#fff', fontSize:12, fontWeight:700, textAlign:'right', maxWidth:'55%' } }, v)
-            )
-          )
-        ),
-        
-        // Bottone Scarica PDF Reale
-        h('button', {
-          onClick: generaPDF,
-          style: { width:'100%', padding:'12px', borderRadius:12, background:'#3b82f6', color:'#fff', fontWeight:800, fontSize:14, border:'none', cursor:'pointer', transition:'all 0.2s' }
-        }, '📄 Scarica Preventivo in PDF'),
-
-        // Bottone WhatsApp
-        h('div', { style:{ textAlign:'center' } },
-          h('a', { href:`https://wa.me/393272617052?text=Ciao%20Dreamlights%2C%20ho%20configurato%20un%20impianto%20da%20${metri}m%20colore%20${encodeURIComponent(preset.label)}%20(${preset.sub})%20spessore%20${encodeURIComponent(tubeLabel)}.%20Vorrei%20maggiori%20informazioni.`, style:{ display:'block', padding:'12px', borderRadius:12, background:'#25D366', color:'#fff', fontWeight:800, fontSize:14, textDecoration:'none', letterSpacing:0.5 } },
-            '💬 Invia richiesta su WhatsApp'
-          )
-        )
-      ),
-
-      // FOOTER
-      h('div', { style:{ marginTop:24, textAlign:'center', color:'#1e1e1e', fontSize:10, lineHeight:2 } },
-        h('div', null, 'DREAMLIGHTS · Roma'),
-        h('div', null, 'Illuminazione LED professionale per negozi, ristoranti e locali commerciali'),
-        h('div', null, '© 2026 Dreamlights — Tutti i diritti riservati')
-      )
-    );
-  }
-
-  ReactDOM.createRoot(document.getElementById('root')).render(h(App, null));
-  </script>
-</body>
-</html>
+      const dettagli =
