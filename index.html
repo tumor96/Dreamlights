@@ -37,7 +37,6 @@
     { id: "yellow",   label: "Giallo",       sub: "Neon",  color: "#FFFF80", glow: "#D4FF00", tube: "#EEEE40", preview: "#FFFF60", note: "Vivo", stock: "ordinabile" },
   ];
 
-  // Prezzo fisso a 30 euro al metro
   const PREZZO_PER_METRO = 30;
 
   function LedPreview({ ledColor, brightness, tubeWidth, isNight }) {
@@ -69,4 +68,39 @@
         h('line', { x1: d.x, y1: d.y+d.h+18, x2: d.x+d.w, y2: d.y+d.h+18, stroke: bpDash, strokeWidth:0.6 }),
         h('line', { x1: d.x, y1: d.y+d.h+14, x2: d.x, y2: d.y+d.h+22, stroke: bpDash, strokeWidth:0.6 }),
         h('line', { x1: d.x+d.w, y1: d.y+d.h+14, x2: d.x+d.w, y2: d.y+d.h+22, stroke: bpDash, strokeWidth:0.6 }),
-        h('text', { x: d.x+d.w/2, y: d.y+d.h+28, textAnchor:'middle', fontSize:6, fill: bpText, fontFamily:'monospace' }, (d.w*10)+' cm
+        h('text', { x: d.x+d.w/2, y: d.y+d.h+28, textAnchor:'middle', fontSize:6, fill: bpText, fontFamily:'monospace' }, (d.w*10)+' cm')
+      );
+    }
+
+    function Glow({ d }) {
+      const p = ledPath(d);
+      const nightMultiplier = isNight ? 1.5 : 1;
+      return h('g', null,
+        h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*16, strokeLinecap:'round', strokeLinejoin:'round', opacity:0.06*b*nightMultiplier, style:{filter:'blur(22px)'} }),
+        h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*7,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.14*b*nightMultiplier, style:{filter:'blur(7px)'} }),
+        h('path', { d:p, fill:'none', stroke:glow, strokeWidth:tw*3,  strokeLinecap:'round', strokeLinejoin:'round', opacity:0.42*b*nightMultiplier, style:{filter:'blur(2px)'} }),
+        h('path', { d:p, fill:'none', stroke:tube, strokeWidth:tw,    strokeLinecap:'round', strokeLinejoin:'round', opacity:0.97 }),
+        h('path', { d:p, fill:'none', stroke:color,strokeWidth:tw*0.42,strokeLinecap:'round', strokeLinejoin:'round', opacity:b }),
+        h('path', { d:p, fill:'none', stroke:'white',strokeWidth:tw*0.16,strokeLinecap:'round',strokeLinejoin:'round',opacity:0.45*b,strokeDasharray:'7 16' })
+      );
+    }
+
+    const gridLines = Array.from({length:10}).map((_,i) =>
+      h('line', { key:i, x1:30, y1:30+i*22, x2:W-30, y2:30+i*22, stroke:bpDash, strokeWidth:0.3 })
+    );
+    const menuLines = Array.from({length:6}).map((_,i) =>
+      h('line', { key:i, x1:d1.x+d1.w+20, y1:100+i*9, x2:d1.x+d1.w+56, y2:100+i*9, stroke:bpDash, strokeWidth:0.4 })
+    );
+
+    return h('svg', { viewBox:`0 0 ${W} ${H}`, style:{width:'100%',borderRadius:12,display:'block', transition:'background 0.3s'} },
+      h('defs', null,
+        h('pattern', { id:'grid', x:0, y:0, width:20, height:20, patternUnits:'userSpaceOnUse' },
+          h('path', { d:'M 20 0 L 0 0 0 20', fill:'none', stroke:bpGrid, strokeWidth:0.5 })
+        )
+      ),
+      h('rect', { width:W, height:H, fill:bpBg }),
+      h('rect', { width:W, height:H, fill:'url(#grid)' }),
+      h('rect', { x:30, y:20, width:W-60, height:10, fill:'none', stroke:bpLine, strokeWidth:0.8, strokeDasharray:'8 4' }),
+      h('line', { x1:30, y1:20, x2:W-30, y2:20, stroke:bpLine, strokeWidth:1 }),
+      h('rect', { x:30, y:30, width:W-60, height:H-60, fill: isNight ? 'transparent' : 'rgba(80,140,255,0.02)', stroke:bpLine, strokeWidth:0.8, strokeDasharray:'10 5' }),
+      ...gridLines,
